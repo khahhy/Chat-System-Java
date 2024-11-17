@@ -1,0 +1,47 @@
+.root {
+    -fx-font-family: Arial, sans-serif;
+}
+
+.text-field {
+    -fx-font-size: 14px;
+}
+
+.button {
+    -fx-background-color: transparent; /* Nền trong suốt */
+    background-color: transparent;     /* Thuộc tính CSS chuẩn */
+    
+    -fx-text-fill: white;              /* Màu chữ trắng */
+    color: white;                      /* Thuộc tính CSS chuẩn */
+    
+    -fx-font-size: 14px;               /* Kích thước chữ */
+    font-size: 14px;                   /* Thuộc tính CSS chuẩn */
+    
+    -fx-padding: 10 15;                /* Khoảng cách nội dung */
+    padding: 10px 15px;                /* Thuộc tính CSS chuẩn */
+}
+
+/* Style cho nút đang được chọn */
+.button.active-button {
+    -fx-background-color: #1E90FF;    /* Màu xanh nổi bật */
+    background-color: #1E90FF;        /* Thuộc tính CSS chuẩn */
+    
+    -fx-text-fill: white;             /* Chữ màu trắng */
+    color: white;                     /* Thuộc tính CSS chuẩn */
+    
+    -fx-font-weight: bold;            /* Chữ đậm */
+    font-weight: bold;                /* Thuộc tính CSS chuẩn */
+
+    /* Viền */
+    -fx-border-color: white;          /* Màu viền */
+    border-color: white;              /* Thuộc tính CSS chuẩn */
+    
+    -fx-border-width: 2;              /* Độ rộng viền */
+    border-width: 2px;                /* Thuộc tính CSS chuẩn */
+
+    /* Bo góc */
+    -fx-border-radius: 5;             /* Bo góc cho viền */
+    border-radius: 5px;               /* Thuộc tính CSS chuẩn */
+    
+    -fx-background-radius: 5;         /* Bo góc cho nền */
+    border-radius: 5px;           /* Thuộc tính CSS chuẩn */
+}
