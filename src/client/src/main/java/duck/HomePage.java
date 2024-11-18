@@ -59,8 +59,8 @@ public class HomePage {
 
     private Button createSidebarButton(String image, BorderPane root, String pageName) {
         Button button = new Button();
+        button.setMaxWidth(Double.MAX_VALUE);
         button.setStyle("-fx-background-color: transparent;");
-        
         ImageView icon = new ImageView(image);
         icon.setFitWidth(24); 
         icon.setFitHeight(24); 
@@ -110,8 +110,9 @@ public class HomePage {
 
     private void updateButtonStyles(Button activeButton) {
         for (Button button : sidebarButtons) {
-            button.getStyleClass().remove("active-button");
+            button.setStyle("-fx-background-color: transparent;");
         }
-        activeButton.getStyleClass().add("active-button");
+        
+        activeButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-weight: bold;");
     }
 }

@@ -33,6 +33,13 @@ public class ClientApp extends Application {
         primaryStage.setScene(scene);
     }
 
+    public void showAdminPage() {
+        AdminPage adminPage = new AdminPage(this);
+        Scene scene = new Scene(adminPage.getContent(), 1080, 720);
+        scene.getStylesheets().add("style.css");
+        primaryStage.setScene(scene);
+    }
+
     public void showSignUpPage() {
         LoginPage loginPage = new LoginPage(this);
         HomePage homePage = new HomePage(this);  // Nếu bạn cần homePage sau khi đăng ký thành công

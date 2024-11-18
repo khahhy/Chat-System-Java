@@ -4,7 +4,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
-import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -29,7 +28,6 @@ public class PopupEditPw {
         editPwStage.initModality(Modality.APPLICATION_MODAL); // Chặn tương tác với cửa sổ chính
         editPwStage.initStyle(StageStyle.TRANSPARENT);
 
-        mainRoot.setEffect(new GaussianBlur(10)); // Làm mờ nền chính
 
         // Khung nội dung
         VBox content = new VBox(10);
@@ -61,7 +59,6 @@ public class PopupEditPw {
         Button cancelButton = new Button("Hủy");
         cancelButton.setStyle("-fx-background-color: #cccccc; -fx-text-fill: black; -fx-padding: 5 10; -fx-border-radius: 5;");
         cancelButton.setOnAction(_ -> {
-            mainRoot.setEffect(null); // Xóa hiệu ứng GaussianBlur
             editPwStage.close();
         });
 
@@ -96,7 +93,6 @@ public class PopupEditPw {
             // Lưu thành công
             errorLabel.setVisible(false);
             System.out.println("Mật khẩu đã được thay đổi thành: " + newPassword);
-            mainRoot.setEffect(null); // Xóa hiệu ứng GaussianBlur
             editPwStage.close();
         });
 
@@ -116,8 +112,6 @@ public class PopupEditPw {
 
         editPwStage.setScene(editPwScene);
 
-        // Khi popup đóng, xóa hiệu ứng GaussianBlur
-        editPwStage.setOnHidden(_ -> mainRoot.setEffect(null));
         editPwStage.showAndWait();
 
         return null; // Trả về giá trị sau này nếu cần

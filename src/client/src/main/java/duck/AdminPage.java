@@ -10,12 +10,12 @@ import javafx.scene.control.MenuItem;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HomePage {
-    private final ServerApp app; 
+public class AdminPage {
+    private final ClientApp app; 
 
     private final List<Button> sidebarButtons = new ArrayList<>();
 
-    public HomePage(ServerApp app) {
+    public AdminPage(ClientApp app) {
         this.app = app;
     }
 
@@ -26,7 +26,7 @@ public class HomePage {
         VBox sidebar = createSidebar(root);
         root.setLeft(sidebar);
 
-        root.setCenter(new MessagePage().getContent());
+        root.setCenter(new Admin_Dashboard().getContent());
 
         return root;
     }
@@ -37,20 +37,12 @@ public class HomePage {
         sidebar.setPrefWidth(40);
 
         VBox mainButtons = new VBox(10);
-        Button profileButton = createSidebarButton("/user.png", root, "profile");
-        Button messageButton = createSidebarButton("/message.png", root, "message");
-        Button friendButton = createSidebarButton("/friend.png", root, "friend");
-
-        mainButtons.getChildren().addAll(profileButton, messageButton, friendButton);
 
         VBox footerButton = new VBox();
         Button settingsButton = createSidebarButton("/menu.png", root, "settings");
         footerButton.getChildren().add(settingsButton);
         VBox.setVgrow(mainButtons, javafx.scene.layout.Priority.ALWAYS);
         
-        sidebarButtons.add(profileButton);
-        sidebarButtons.add(messageButton);
-        sidebarButtons.add(friendButton);
         sidebarButtons.add(settingsButton);
 
         sidebar.getChildren().addAll(mainButtons, footerButton);
@@ -59,31 +51,14 @@ public class HomePage {
 
     private Button createSidebarButton(String image, BorderPane root, String pageName) {
         Button button = new Button();
+        button.setMaxWidth(Double.MAX_VALUE);
         button.setStyle("-fx-background-color: transparent;");
-        
         ImageView icon = new ImageView(image);
         icon.setFitWidth(24); 
         icon.setFitHeight(24); 
         button.setGraphic(icon);
 
-        button.setOnAction(e -> {
-            switch (pageName) {
-                case "profile":
-                    new PopupProfile(root).showPopup();
-                    break;
-                case "message":
-                    root.setCenter(new MessagePage().getContent());
-                    break;
-                case "friend":
-                    root.setCenter(new FriendPage().getContent());
-                    break;
-                case "settings":
-                    footer_Dropdown(button, root);
-                    break;
-            }
-
-            updateButtonStyles(button);
-        });
+        button.setOnAction(_ -> footer_Dropdown(button, root));
 
         return button;
     }
@@ -93,11 +68,10 @@ public class HomePage {
     
         
         MenuItem editPasswordItem = new MenuItem("Edit Password");
-        editPasswordItem.setOnAction(e -> {
+        editPasswordItem.setOnAction(_ -> {
             new PopupEditPw(root, "test pw").showEditPwPopup();
         });
-    
-        
+           
         MenuItem logoutItem = new MenuItem("Logout");
         logoutItem.setOnAction(_ -> {
             app.showLoginPage();   // app này là bên client app truyền vào ban đầu
@@ -106,12 +80,5 @@ public class HomePage {
         settingsMenu.getItems().addAll(editPasswordItem, logoutItem);
     
         settingsMenu.show(button, javafx.geometry.Side.BOTTOM, 0, 0);
-    }
-
-    private void updateButtonStyles(Button activeButton) {
-        for (Button button : sidebarButtons) {
-            button.getStyleClass().remove("active-button");
-        }
-        activeButton.getStyleClass().add("active-button");
     }
 }

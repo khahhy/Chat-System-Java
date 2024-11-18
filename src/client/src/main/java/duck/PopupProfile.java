@@ -47,7 +47,7 @@ public class PopupProfile {
         // Nút edit
         Button editButton = new Button("Chỉnh sửa thông tin");
         editButton.setStyle("-fx-background-color: #6c63ff; -fx-text-fill: white; -fx-padding: 5 10; -fx-border-radius: 5;");
-        editButton.setOnAction(e -> {
+        editButton.setOnAction(_ -> {
             new PopupEditProfile(mainRoot, genderLabel, dobLabel, phoneLabel).showEditPopup();
         });
 
