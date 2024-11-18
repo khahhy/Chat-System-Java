@@ -207,7 +207,14 @@ public class MessagePage {
     private void updateFriendInfo(Friend friend) {
         Label userName = new Label(friend.getName());
         userName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-    
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("Tìm kiếm tin nhắn...");
+        searchField.setStyle("-fx-font-size: 14px;");
+        searchField.setPrefWidth(250);
+        searchField.textProperty().addListener((_, _, _) -> {
+        
+        });
         Button spamButton = new Button("Báo Spam");
         spamButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
         spamButton.setPrefWidth(150);
@@ -216,7 +223,7 @@ public class MessagePage {
         deleteHistoryButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
         deleteHistoryButton.setPrefWidth(150);
     
-        userInfoContainer.getChildren().addAll(userName, spamButton, deleteHistoryButton);
+        userInfoContainer.getChildren().addAll(userName, searchField, spamButton, deleteHistoryButton);
     }
     
     private void updateGroupInfo(Group group) {
@@ -225,11 +232,20 @@ public class MessagePage {
     
         Label adminLabel = new Label("Admin: " + group.getAdmin());
         adminLabel.setStyle("-fx-font-size: 14px;");
-    
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("Tìm kiếm tin nhắn...");
+        searchField.setStyle("-fx-font-size: 14px;");
+        searchField.setPrefWidth(250);
+        searchField.textProperty().addListener((_, _, _) -> {
+        
+        });
+
         ComboBox<String> memberDropdown = new ComboBox<>();
         memberDropdown.getItems().addAll(group.getMembers());
         memberDropdown.setPromptText("Thành viên");
-    
+        
+        
         Button renameButton = new Button("Đổi tên nhóm");
         Button addMemberButton = new Button("Thêm thành viên");
         Button assignAdminButton = new Button("Gán quyền admin");
@@ -270,7 +286,7 @@ public class MessagePage {
             });
         });
         
-        userInfoContainer.getChildren().addAll(groupName, adminLabel, memberDropdown, renameButton, addMemberButton, assignAdminButton, removeMemberButton);
+        userInfoContainer.getChildren().addAll(groupName, searchField, adminLabel, memberDropdown, renameButton, addMemberButton, assignAdminButton, removeMemberButton);
     }
 
 
