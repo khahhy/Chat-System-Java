@@ -33,6 +33,26 @@ public class ClientApp extends Application {
         primaryStage.setScene(scene);
     }
 
+    public void showSignUpPage() {
+        LoginPage loginPage = new LoginPage(this);
+        HomePage homePage = new HomePage(this);  // Nếu bạn cần homePage sau khi đăng ký thành công
+        RegisterPage registerPage = new RegisterPage(primaryStage, loginPage.getContent(), homePage.getContent());
+
+        Scene scene = new Scene(registerPage, 1080, 720);
+        scene.getStylesheets().add("style.css");
+        primaryStage.setScene(scene);
+    }
+
+    public void showForgotPasswordPage() {
+        ForgotPasswordPage forgotPasswordPage = new ForgotPasswordPage(this);
+
+        // Tạo Scene mới cho trang quên mật khẩu
+        Scene scene = new Scene(forgotPasswordPage, 1080, 720);
+        scene.getStylesheets().add("style.css");
+        primaryStage.setScene(scene);
+    }
+
+    
     public static void main(String[] args) {
         launch(args);
     }
