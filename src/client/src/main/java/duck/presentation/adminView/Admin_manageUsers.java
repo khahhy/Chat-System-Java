@@ -3,7 +3,9 @@ package duck.presentation.adminView;
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
 
-import duck.presentation.adminView.Admin_LoginHistory.LoginRecord;
+import duck.bus.LoginHistoryBUS;
+import duck.dto.LoginHistoryDTO;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -250,6 +252,13 @@ public class Admin_manageUsers {
     }
 
     private void showLoginHistoryPopup(UserDTO user) {
+        LoginHistoryBUS login_history_BUS = new LoginHistoryBUS();
+        List<LoginHistoryDTO> loginHistoryList = login_history_BUS.getLoginHistoryByUserId(user.getUserId());
+        ObservableList<LoginHistoryDTO> loginHistories = FXCollections.observableArrayList(loginHistoryList);
+
+        TableView<LoginHistoryDTO> loginTable = new TableView<>();
+        loginTable.setItems(loginHistories);
+
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
         popup.initStyle(StageStyle.UTILITY);
@@ -259,30 +268,25 @@ public class Admin_manageUsers {
         content.setStyle("-fx-padding: 20;");
         Label title = new Label("Lịch sử đăng nhập của " + user.getUsername());
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        /*
-        TableView<LoginRecord> loginHistoryTable = new TableView<>();
-        loginHistoryTable.setPrefSize(300, 200);
 
-        TableColumn<LoginRecord, String> dateColumn = new TableColumn<>("Ngày");
-        dateColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getDate()));
+        
+        loginTable.setPrefSize(300, 200);
 
-        TableColumn<LoginRecord, String> timeColumn = new TableColumn<>("Giờ");
-        timeColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getTime()));
+        DateTimeFormatter formatterTime = DateTimeFormatter.ofPattern("HH:mm:ss");
+        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        ObservableList<LoginRecord> loginRecords = FXCollections.observableArrayList(
-            new LoginRecord("18/11/2024", "10:15:30"),
-            new LoginRecord("17/11/2024", "22:45:10"),
-            new LoginRecord("16/11/2024", "08:30:00")
-        );
-        loginHistoryTable.setItems(loginRecords);
-        loginHistoryTable.getColumns().addAll(dateColumn, timeColumn);
-        loginHistoryTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        TableColumn<LoginHistoryDTO, String> dateColumn = new TableColumn<>("Ngày");
+        dateColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getLoginTime().format(formatterDate)));
 
-        content.getChildren().addAll(title, loginHistoryTable);
+        TableColumn<LoginHistoryDTO, String> timeColumn = new TableColumn<>("Giờ");
+        timeColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getLoginTime().format(formatterTime)));
+
+        loginTable.getColumns().addAll(dateColumn, timeColumn);
+        content.getChildren().addAll(title, loginTable);
 
         Scene scene = new Scene(content, 350, 300);
         popup.setScene(scene);
-        popup.showAndWait();*/
+        popup.showAndWait();
     }
 
     private void showEditUserPopup(UserDTO user) {

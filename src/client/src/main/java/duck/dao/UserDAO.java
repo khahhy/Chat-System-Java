@@ -9,22 +9,20 @@ import java.util.List;
 
 public class UserDAO {
 
-    // Lấy danh sách tất cả người dùng, có thể lọc, sắp xếp và kiểm tra trạng thái người dùng
+    // danh sách tất cả người dùng, lọc theo name, username, status, sắp xếp 
     public List<UserDTO> getAllUsers(String filter, String sortBy, Boolean isActive) throws SQLException {
         List<UserDTO> userList = new ArrayList<>();
         StringBuilder query = new StringBuilder("SELECT * FROM users WHERE (username LIKE ? OR full_name LIKE ?)");
     
-        // Nếu có điều kiện lọc trạng thái người dùng
         if (isActive != null) {
             query.append(" AND status = ?");
         }
     
-        // Kiểm tra và đảm bảo sortBy là hợp lệ
         String[] validSortFields = {"username", "full_name", "created_at", "status"};
         if (Arrays.asList(validSortFields).contains(sortBy)) {
             query.append(" ORDER BY ").append(sortBy);
         } else {
-            query.append(" ORDER BY username");  // Sắp xếp theo mặc định
+            query.append(" ORDER BY username"); 
         }
     
         try (Connection conn = DatabaseConnection.getConnection();
@@ -33,7 +31,7 @@ public class UserDAO {
             stmt.setString(2, "%" + filter + "%");
     
             if (isActive != null) {
-                stmt.setBoolean(3, isActive);  // Gắn trạng thái vào câu query nếu được cung cấp
+                stmt.setBoolean(3, isActive); 
             }
     
             ResultSet rs = stmt.executeQuery();
@@ -50,7 +48,7 @@ public class UserDAO {
                         rs.getBoolean("status"),
                         rs.getBoolean("is_online"),
                         rs.getTimestamp("created_at").toLocalDateTime(),
-                        rs.getBoolean("is_admin") // Đọc giá trị is_admin
+                        rs.getBoolean("is_admin") 
                 ));
             }
         }
@@ -58,7 +56,6 @@ public class UserDAO {
     }
     
 
-    // Thêm một người dùng mới vào cơ sở dữ liệu
     public boolean addUser(UserDTO user) throws SQLException {
         String query = "INSERT INTO users (username, full_name, address, date_of_birth, gender, email, password, status, is_online, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -72,12 +69,12 @@ public class UserDAO {
             stmt.setString(7, user.getPassword());
             stmt.setBoolean(8, user.isStatus());
             stmt.setBoolean(9, user.isOnline());
-            stmt.setBoolean(10, user.isAdmin()); // Ghi giá trị của cột is_admin
+            stmt.setBoolean(10, user.isAdmin()); 
             return stmt.executeUpdate() > 0;
         }
     }
 
-    // Cập nhật thông tin người dùng
+  
     public boolean updateUser(UserDTO user) throws SQLException {
         String query = "UPDATE users SET full_name = ?, address = ?, date_of_birth = ?, gender = ?, email = ?, password = ?, status = ?, is_online = ?, is_admin = ? WHERE user_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -90,13 +87,13 @@ public class UserDAO {
             stmt.setString(6, user.getPassword());
             stmt.setBoolean(7, user.isStatus());
             stmt.setBoolean(8, user.isOnline());
-            stmt.setBoolean(9, user.isAdmin()); // Cập nhật giá trị của cột is_admin
+            stmt.setBoolean(9, user.isAdmin());
             stmt.setInt(10, user.getUserId());
             return stmt.executeUpdate() > 0;
         }
     }
 
-    // Xóa một người dùng khỏi cơ sở dữ liệu
+   
     public boolean deleteUser(int userId) throws SQLException {
         String query = "DELETE FROM users WHERE user_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -106,7 +103,7 @@ public class UserDAO {
         }
     }
 
-    // Khóa hoặc mở khóa người dùng (thay đổi trạng thái)
+    
     public boolean lockUnlockUser(int userId, boolean status) throws SQLException {
         String query = "UPDATE users SET status = ? WHERE user_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();

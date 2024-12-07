@@ -1,5 +1,8 @@
 package duck.presentation.adminView;
 
+import duck.bus.LoginHistoryBUS;
+import duck.dto.LoginHistoryDTO;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -10,45 +13,34 @@ import javafx.stage.Stage;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class Admin_LoginHistory {
+    private LoginHistoryBUS login_history_BUS;
+    List<LoginHistoryDTO> loginHistoryList;
+    ObservableList<LoginHistoryDTO> loginHistories;
 
-    public class LoginRecord {
-        private String timestamp;
-        private String username;
-        private String fullName;
-        public LoginRecord(String timestamp, String username, String fullName) {
-            this.timestamp = timestamp;
-            this.username = username;
-            this.fullName = fullName;
-        }
-        public String getTimestamp() {return timestamp;}
-        public String getUsername() {return username;}
-        public String getFullName() {return fullName;}
+    public Admin_LoginHistory() {
+        login_history_BUS = new LoginHistoryBUS();
+        loginHistoryList = login_history_BUS.getAllLoginHistory();
+        loginHistories = FXCollections.observableArrayList(loginHistoryList);
     }
 
-    private final ObservableList<LoginRecord> loginHistory = FXCollections.observableArrayList(
-        new LoginRecord(formatTimestamp(LocalDateTime.now()), "user01", "Nguyễn Văn A"),
-        new LoginRecord(formatTimestamp(LocalDateTime.now().minusHours(1)), "user02", "Trần Thị B"),
-        new LoginRecord(formatTimestamp(LocalDateTime.now().minusDays(1)), "user03", "Phạm Minh C"),
-        new LoginRecord(formatTimestamp(LocalDateTime.now().minusDays(2)), "user04", "Đỗ Quốc D"),
-        new LoginRecord(formatTimestamp(LocalDateTime.now().minusDays(3)), "user05", "Nguyễn Văn E")
-    );
 
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-padding: 20;");
 
-        TableView<LoginRecord> loginTable = new TableView<>();
-        loginTable.setItems(loginHistory);
+        TableView<LoginHistoryDTO> loginTable = new TableView<>();
+        loginTable.setItems(loginHistories);
 
-        TableColumn<LoginRecord, String> timestampColumn = new TableColumn<>("Thời gian");
-        timestampColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getTimestamp()));
+        TableColumn<LoginHistoryDTO, String> timestampColumn = new TableColumn<>("Thời gian");
+        timestampColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(formatTimestamp(data.getValue().getLoginTime())));
 
-        TableColumn<LoginRecord, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
+        TableColumn<LoginHistoryDTO, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
         usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getUsername()));
 
-        TableColumn<LoginRecord, String> fullNameColumn = new TableColumn<>("Họ tên");
+        TableColumn<LoginHistoryDTO, String> fullNameColumn = new TableColumn<>("Họ tên");
         fullNameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getFullName()));
 
         loginTable.getColumns().addAll(timestampColumn, usernameColumn, fullNameColumn);

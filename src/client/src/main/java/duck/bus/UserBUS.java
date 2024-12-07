@@ -41,4 +41,44 @@ public class UserBUS {
             return false;
         }
     }
+
+    public boolean deleteUser(int userId) {
+        try {
+            return userDAO.deleteUser(userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    
+    public boolean lockUnlockUser(int userId, boolean status) {
+        try {
+            return userDAO.lockUnlockUser(userId, status);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    
+    public boolean updatePassword(int userId, String newPassword) {
+        try {
+            UserDTO user = userDAO.getAllUsers("", "user_id", null)
+                    .stream()
+                    .filter(u -> u.getUserId() == userId)
+                    .findFirst()
+                    .orElse(null);
+
+            if (user == null) {
+                return false; 
+            }
+
+            user.setPassword(newPassword);
+            return userDAO.updateUser(user);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

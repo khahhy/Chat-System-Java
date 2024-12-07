@@ -8,11 +8,16 @@ public class LoginHistoryDTO {
     private LocalDateTime loginTime; 
     private LocalDateTime logoutTime; 
 
-    public LoginHistoryDTO(int historyId, int userId, LocalDateTime loginTime, LocalDateTime logoutTime) {
+    private String username;   
+    private String fullName;
+
+    public LoginHistoryDTO(int historyId, int userId, LocalDateTime loginTime, LocalDateTime logoutTime, String username, String fullName) {
         this.historyId = historyId;
         this.userId = userId;
         this.loginTime = loginTime;
         this.logoutTime = logoutTime;
+        this.username = username;
+        this.fullName = fullName;
     }
 
    
@@ -27,4 +32,10 @@ public class LoginHistoryDTO {
 
     public LocalDateTime getLogoutTime() { return logoutTime; }
     public void setLogoutTime(LocalDateTime logoutTime) { this.logoutTime = logoutTime; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
 }
