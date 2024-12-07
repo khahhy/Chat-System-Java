@@ -1,0 +1,21 @@
+* {
+    color: black; /* Đặt màu chữ mặc định là đen */
+}
+
+/* Nếu cần áp dụng cụ thể cho Label, Text, Button, và các thành phần khác */
+Label, Text, Button, .text {
+    -fx-text-fill: black; /* JavaFX CSS property cho màu chữ */
+}
+
+.button {
+    -fx-text-fill: black; 
+    -fx-font-size: 14px; 
+    -fx-padding: 10; 
+    -fx-alignment: center; 
+}
+
+.list-view .cell {
+    -fx-background-color: transparent; 
+    -fx-border-color: transparent;   
+}
+
