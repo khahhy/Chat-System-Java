@@ -1,5 +1,7 @@
 package duck.presentation.adminView;
 
+import duck.bus.SpamReportBUS;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -11,57 +13,57 @@ import javafx.stage.Stage;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 public class Admin_SpamReports {
+    private SpamReportBUS spamReportBUS;
+    private List<Map<String, Object>> spamReportList;
+    private ObservableList<Map<String, Object>> spamReports;
+    private ObservableList<Map<String, Object>> filteredReports;
 
-    public class SpamReport {
-        private String reportedUsername;
-        private String timestamp;
-
-        public SpamReport(String reportedUsername, LocalDateTime timestamp) {
-            this.reportedUsername = reportedUsername;
-            this.timestamp = formatTimestamp(timestamp);
-        }
-        public String getReportedUsername() {return reportedUsername;}
-
-        public String getTimestamp() {return timestamp;}
+    public Admin_SpamReports() {
+        spamReportBUS = new SpamReportBUS();
+        spamReportList = spamReportBUS.getSpamReports(null, null, null, null);
+        spamReports = FXCollections.observableArrayList(spamReportList);
+        filteredReports = FXCollections.observableArrayList(spamReports);
     }
-
-    private final ObservableList<SpamReport> spamReports = FXCollections.observableArrayList(
-        new SpamReport("user01", LocalDateTime.now()),
-        new SpamReport("user02", LocalDateTime.now().minusHours(1)),
-        new SpamReport("user03", LocalDateTime.now().minusDays(1)),
-        new SpamReport("user04", LocalDateTime.now().minusDays(2)),
-        new SpamReport("user05", LocalDateTime.now().minusDays(3))
-    );
-
-    private final ObservableList<SpamReport> filteredReports = FXCollections.observableArrayList(spamReports);
-
+    
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-padding: 20;");
 
-        TableView<SpamReport> spamTable = new TableView<>();
-        spamTable.setItems(filteredReports);
+        TableView<Map<String, Object>> reportTable = new TableView<>();
+        reportTable.setItems(filteredReports);
 
-        TableColumn<SpamReport, String> usernameColumn = new TableColumn<>("Tên đăng nhập"); // ten dang nhap cua nguoi bi report
-        usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getReportedUsername()));
+        TableColumn<Map<String, Object>, String> usernameColumn = new TableColumn<>("Tên đăng nhập"); 
+        usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("username")));
         usernameColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<SpamReport, String> timestampColumn = new TableColumn<>("Thời gian");
-        timestampColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getTimestamp()));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        TableColumn<Map<String, Object>, String> timestampColumn = new TableColumn<>("Thời gian");
+        timestampColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(((LocalDateTime)data.getValue().get("reportTime")).format(formatter)));
         timestampColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<SpamReport, Void> lockColumn = new TableColumn<>("Tùy chọn");
+        TableColumn<Map<String, Object>, Void> lockColumn = new TableColumn<>("Tùy chọn");
         lockColumn.setCellFactory(_ -> new TableCell<>() {
             private final Button lockButton = new Button("Khóa tài khoản");
 
             {
                 lockButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #ff6666; -fx-text-fill: white;");
                 lockButton.setOnAction(_ -> {
-                    SpamReport report = getTableView().getItems().get(getIndex());
-                    spamReports.remove(report); 
-                    filteredReports.remove(report); 
+                    Map<String, Object> report = getTableView().getItems().get(getIndex());
+                    int reportedId = (int) report.get("reportedId");
+                    if (spamReportBUS.lockUser(reportedId)) {
+                        spamReports.removeIf(r -> (int) r.get("reportedId") == reportedId);
+                        filteredReports.removeIf(r -> (int) r.get("reportedId") == reportedId);
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION, "Tài khoản đã bị khóa!", ButtonType.OK);
+                        alert.showAndWait();
+                    } else {
+                        Alert alert = new Alert(Alert.AlertType.ERROR, "Không thể khóa tài khoản!", ButtonType.OK);
+                        alert.showAndWait();
+                    }
+                    
                 });
             }
 
@@ -76,19 +78,19 @@ public class Admin_SpamReports {
         lockColumn.setStyle("-fx-alignment: CENTER;");
 
       
-        spamTable.getColumns().addAll(usernameColumn, timestampColumn, lockColumn);
-        spamTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        reportTable.getColumns().addAll(usernameColumn, timestampColumn, lockColumn);
+        reportTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        HBox controls = createControls(spamTable);
+        HBox controls = createControls(reportTable);
 
-        VBox content = new VBox(10, controls, spamTable);
+        VBox content = new VBox(10, controls, reportTable);
         content.setStyle("-fx-padding: 10; -fx-background-color: #f9f9f9; -fx-border-color: #ddd; -fx-border-width: 1;");
         root.setCenter(content);
 
         return root;
     }
 
-    private HBox createControls(TableView<SpamReport> spamTable) {
+    private HBox createControls(TableView<Map<String, Object>> spamTable) {
         TextField searchField = new TextField();
         searchField.setPromptText("Lọc theo tên đăng nhập");
         searchField.setPrefWidth(150);
@@ -101,10 +103,6 @@ public class Admin_SpamReports {
         endDatePicker.setPromptText("Đến ngày");
         endDatePicker.setPrefWidth(150);
 
-        ComboBox<String> sortOptions = new ComboBox<>(FXCollections.observableArrayList(
-            "Tên A-Z", "Tên Z-A", "Thời gian mới nhất", "Thời gian cũ nhất"
-        ));
-        sortOptions.setValue("Tên A-Z");
 
         Button applyFilterButton = new Button("Lọc");
         applyFilterButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #4CAF50; -fx-text-fill: white;");
@@ -114,43 +112,23 @@ public class Admin_SpamReports {
             LocalDateTime endDate = endDatePicker.getValue() != null ? endDatePicker.getValue().atTime(23, 59, 59) : null;
 
             filteredReports.setAll(spamReports.filtered(report -> {
-                boolean matchesKeyword = report.getReportedUsername().toLowerCase().contains(keyword);
+                boolean matchesKeyword = ((String)report.get("username")).toLowerCase().contains(keyword);
                 boolean matchesDate = true;
 
                 if (startDate != null || endDate != null) {
-                    LocalDateTime reportDate = LocalDateTime.parse(report.getTimestamp(), DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
-                    matchesDate = (startDate == null || !reportDate.isBefore(startDate)) && (endDate == null || !reportDate.isAfter(endDate));
+                    LocalDateTime reportDate = (LocalDateTime) report.get("reportTime");
+                    matchesDate = (startDate == null || !reportDate.isBefore(startDate)) &&
+                                  (endDate == null || !reportDate.isAfter(endDate));
                 }
 
                 return matchesKeyword && matchesDate;
             }));
         });
 
-        sortOptions.setOnAction(_ -> {
-            String sortChoice = sortOptions.getValue();
-            filteredReports.sort((r1, r2) -> {
-                switch (sortChoice) {
-                    case "Tên A-Z":
-                        return r1.getReportedUsername().compareToIgnoreCase(r2.getReportedUsername());
-                    case "Tên Z-A":
-                        return r2.getReportedUsername().compareToIgnoreCase(r1.getReportedUsername());
-                    case "Thời gian mới nhất":
-                        return r2.getTimestamp().compareTo(r1.getTimestamp());
-                    case "Thời gian cũ nhất":
-                        return r1.getTimestamp().compareTo(r2.getTimestamp());
-                }
-                return 0;
-            });
-        });
 
-        HBox filters = new HBox(10, searchField, startDatePicker, endDatePicker, applyFilterButton, sortOptions);
+        HBox filters = new HBox(10, searchField, startDatePicker, endDatePicker, applyFilterButton);
         filters.setStyle("-fx-padding: 10; -fx-background-color: #f1f1f1; -fx-border-color: #ddd; -fx-border-width: 1;");
         return filters;
-    }
-
-    private String formatTimestamp(LocalDateTime timestamp) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        return timestamp.format(formatter);
     }
 
     public void start(Stage stage) {

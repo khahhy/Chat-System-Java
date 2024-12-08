@@ -9,6 +9,7 @@ public class SpamReportDTO {
     private String reason;
     private LocalDateTime createdAt;
 
+
     public SpamReportDTO(int reportId, int reporterId, int reportedId, String reason, LocalDateTime createdAt) {
         this.reportId = reportId;
         this.reporterId = reporterId;
@@ -32,4 +33,5 @@ public class SpamReportDTO {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
 }

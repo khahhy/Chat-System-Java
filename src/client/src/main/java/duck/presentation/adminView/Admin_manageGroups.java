@@ -1,5 +1,9 @@
 package duck.presentation.adminView;
 
+import duck.bus.GroupBUS;
+import duck.bus.GroupMemberBUS;
+import duck.dto.GroupDTO;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -9,41 +13,21 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 public class Admin_manageGroups {
+    private GroupBUS groupBUS;
+    private GroupMemberBUS groupMemBUS;
+    List<GroupDTO> group_list;
+    ObservableList<GroupDTO> groups;
 
-    public class Group {
-        private String name;
-        private LocalDateTime createdAt;
-        private List<String> members;
-        private List<String> admins;
-
-        public Group(String name, LocalDateTime createdAt, List<String> members, List<String> admins) {
-            this.name = name;
-            this.createdAt = createdAt;
-            this.members = members;
-            this.admins = admins;
-        }
-        public String getName() {return name;}
-        public LocalDateTime getCreatedAt() {return createdAt;}
-        public List<String> getMembers() {return members;}
-        public List<String> getAdmins() {return admins;}
+    public Admin_manageGroups() {
+        groupBUS = new GroupBUS();
+        groupMemBUS = new GroupMemberBUS();
+        group_list = groupBUS.getAllGroups();
+        groups = FXCollections.observableArrayList(group_list);
     }
-
-    private final ObservableList<Group> groups = FXCollections.observableArrayList(
-        new Group("học java", LocalDateTime.of(2023, 11, 1, 10, 0), 
-                  Arrays.asList("Nguyễn Văn A", "Trần Thị B", "Phạm Minh C"), 
-                  Arrays.asList("Nguyễn Văn A")),
-        new Group("22clc02", LocalDateTime.of(2023, 10, 25, 15, 30), 
-                  Arrays.asList("Đỗ Quốc D", "Nguyễn Văn E"), 
-                  Arrays.asList("Đỗ Quốc D")),
-        new Group("khtn", LocalDateTime.of(2023, 9, 15, 9, 0), 
-                  Arrays.asList("Phạm Minh C", "Trần Thị B"), 
-                  Arrays.asList("Phạm Minh C"))
-    );
+    
 
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
@@ -60,10 +44,10 @@ public class Admin_manageGroups {
         sortOptions.setValue("Tên A-Z");
 
         
-        ListView<Group> groupListView = new ListView<>(groups);
+        ListView<GroupDTO> groupListView = new ListView<>(groups);
         groupListView.setCellFactory(_ -> new ListCell<>() {
             @Override
-            protected void updateItem(Group group, boolean empty) {
+            protected void updateItem(GroupDTO group, boolean empty) {
                 super.updateItem(group, empty);
                 if (empty || group == null) {
                     setGraphic(null);
@@ -72,7 +56,7 @@ public class Admin_manageGroups {
                     VBox container = new VBox(5);
                     container.setStyle("-fx-padding: 10; -fx-background-color: #e6f7ff; -fx-border-color: #b3d9ff; -fx-border-width: 1;");
 
-                    Label nameLabel = new Label(group.getName());
+                    Label nameLabel = new Label(group.getGroupName());
                     nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
                     Label createdAtLabel = new Label("Ngày tạo: " + group.getCreatedAt());
@@ -106,22 +90,22 @@ public class Admin_manageGroups {
         return root;
     }
 
-    private ObservableList<Group> filterGroups(String keyword) {
+    private ObservableList<GroupDTO> filterGroups(String keyword) {
         if (keyword == null || keyword.isEmpty()) {
             return groups;
         }
         String lowerKeyword = keyword.toLowerCase();
-        return groups.filtered(group -> group.getName().toLowerCase().contains(lowerKeyword));
+        return groups.filtered(group -> group.getGroupName().toLowerCase().contains(lowerKeyword));
     }
 
-    private ObservableList<Group> sortGroups(ObservableList<Group> groups, String sortChoice) {
-        ObservableList<Group> sortedGroups = FXCollections.observableArrayList(groups);
+    private ObservableList<GroupDTO> sortGroups(ObservableList<GroupDTO> groups, String sortChoice) {
+        ObservableList<GroupDTO> sortedGroups = FXCollections.observableArrayList(groups);
         switch (sortChoice) {
             case "Tên A-Z":
-                sortedGroups.sort((g1, g2) -> g1.getName().compareToIgnoreCase(g2.getName()));
+                sortedGroups.sort((g1, g2) -> g1.getGroupName().compareToIgnoreCase(g2.getGroupName()));
                 break;
             case "Tên Z-A":
-                sortedGroups.sort((g1, g2) -> g2.getName().compareToIgnoreCase(g1.getName()));
+                sortedGroups.sort((g1, g2) -> g2.getGroupName().compareToIgnoreCase(g1.getGroupName()));
                 break;
             case "Thời gian tạo mới nhất":
                 sortedGroups.sort((g1, g2) -> g2.getCreatedAt().compareTo(g1.getCreatedAt()));
@@ -133,22 +117,24 @@ public class Admin_manageGroups {
         return sortedGroups;
     }
 
-    private void showGroupDetailsPopup(Group group) {
+    private void showGroupDetailsPopup(GroupDTO group) {
+        List<String> admins = groupMemBUS.getAdminOrMem(group.getGroupId(), true);
+        List<String> members = groupMemBUS.getAdminOrMem(group.getGroupId(), false);
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
         popup.initStyle(StageStyle.UTILITY);
-        popup.setTitle("Chi tiết nhóm: " + group.getName());
+        popup.setTitle("Chi tiết nhóm: " + group.getGroupName());
 
         VBox content = new VBox(10);
         content.setStyle("-fx-padding: 20;");
 
-        Label groupNameLabel = new Label("Tên nhóm: " + group.getName());
+        Label groupNameLabel = new Label("Tên nhóm: " + group.getGroupName());
         Label createdAtLabel = new Label("Ngày tạo: " + group.getCreatedAt());
 
-        ListView<String> adminListView = new ListView<>(FXCollections.observableArrayList(group.getAdmins()));
+        ListView<String> adminListView = new ListView<>(FXCollections.observableArrayList(admins));
         adminListView.setPrefHeight(100);
 
-        ListView<String> memberListView = new ListView<>(FXCollections.observableArrayList(group.getMembers()));
+        ListView<String> memberListView = new ListView<>(FXCollections.observableArrayList(members));
         memberListView.setPrefHeight(200);
 
         content.getChildren().addAll(

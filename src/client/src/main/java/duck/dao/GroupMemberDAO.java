@@ -4,12 +4,14 @@ import duck.dto.GroupMemberDTO;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GroupMemberDAO {
     public List<GroupMemberDTO> getMembersByGroupId(int groupId) throws SQLException {
         List<GroupMemberDTO> members = new ArrayList<>();
-        String query = "SELECT * FROM group_members WHERE group_id = ?";
+        String query = "SELECT * FROM GroupMembers WHERE group_id = ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -28,7 +30,7 @@ public class GroupMemberDAO {
     }
 
     public boolean addMember(GroupMemberDTO member) throws SQLException {
-        String query = "INSERT INTO group_members (group_id, user_id, is_admin, joined_at) VALUES (?, ?, ?, ?)";
+        String query = "INSERT INTO GroupMembers (group_id, user_id, is_admin, joined_at) VALUES (?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, member.getGroupId());
@@ -40,7 +42,7 @@ public class GroupMemberDAO {
     }
 
     public boolean removeMember(int groupId, int userId) throws SQLException {
-        String query = "DELETE FROM group_members WHERE group_id = ? AND user_id = ?";
+        String query = "DELETE FROM GroupMembers WHERE group_id = ? AND user_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, groupId);
@@ -51,7 +53,7 @@ public class GroupMemberDAO {
 
     // Cập nhật quyền admin của một thành viên trong nhóm
     public boolean updateMemberAdminStatus(int groupId, int userId, boolean isAdmin) throws SQLException {
-        String query = "UPDATE group_members SET is_admin = ? WHERE group_id = ? AND user_id = ?";
+        String query = "UPDATE GroupMembers SET is_admin = ? WHERE group_id = ? AND user_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setBoolean(1, isAdmin);
@@ -60,4 +62,24 @@ public class GroupMemberDAO {
             return stmt.executeUpdate() > 0;
         }
     }
+
+    public List<String> getAdminOrMem(int groupId, boolean is_admin) throws SQLException {
+        List<String> mems = new ArrayList<>();
+        String query = "SELECT gm.user_id, u.full_name, gm.joined_at " +
+                   "FROM GroupMembers gm " +
+                   "JOIN users u ON gm.user_id = u.user_id " +
+                   "WHERE gm.group_id = ? AND gm.is_admin = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, groupId);
+            stmt.setBoolean(2, is_admin);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                mems.add(rs.getString("full_name"));
+            }
+        }
+        return mems;
+    }
+
 }

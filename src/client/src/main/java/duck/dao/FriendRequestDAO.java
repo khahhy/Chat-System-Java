@@ -10,7 +10,7 @@ public class FriendRequestDAO {
     // lời mời đã gửi
     public List<FriendRequestDTO> getSentRequestsByUserId(int senderId) throws SQLException {
         List<FriendRequestDTO> requestList = new ArrayList<>();
-        String query = "SELECT * FROM friend_requests WHERE sender_id = ?";
+        String query = "SELECT * FROM FriendRequests WHERE sender_id = ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -32,7 +32,7 @@ public class FriendRequestDAO {
     // lời mời đã nhận
     public List<FriendRequestDTO> getReceivedRequestsByUserId(int receiverId) throws SQLException {
         List<FriendRequestDTO> requestList = new ArrayList<>();
-        String query = "SELECT * FROM friend_requests WHERE receiver_id = ?";
+        String query = "SELECT * FROM FriendRequests WHERE receiver_id = ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -53,7 +53,7 @@ public class FriendRequestDAO {
 
     // gửi lời mời kết bạn
     public boolean sendFriendRequest(FriendRequestDTO request) throws SQLException {
-        String query = "INSERT INTO friend_requests (sender_id, receiver_id, status, created_at) VALUES (?, ?, ?, ?)";
+        String query = "INSERT INTO FriendRequests (sender_id, receiver_id, status, created_at) VALUES (?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, request.getSenderId());
@@ -66,7 +66,7 @@ public class FriendRequestDAO {
 
     // update status
     public boolean updateFriendRequestStatus(int requestId, String status) throws SQLException {
-        String query = "UPDATE friend_requests SET status = ? WHERE request_id = ?";
+        String query = "UPDATE FriendRequests SET status = ? WHERE request_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, status);
@@ -77,7 +77,7 @@ public class FriendRequestDAO {
 
     // từ chối
     public boolean deleteFriendRequest(int requestId) throws SQLException {
-        String query = "DELETE FROM friend_requests WHERE request_id = ?";
+        String query = "DELETE FROM FriendRequests WHERE request_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, requestId);
@@ -87,7 +87,7 @@ public class FriendRequestDAO {
 
     // check user đã gửi lời mời kết bạn cho mình chưa
     public boolean hasSentRequest(int senderId, int receiverId) throws SQLException {
-        String query = "SELECT COUNT(*) FROM friend_requests WHERE sender_id = ? AND receiver_id = ?";
+        String query = "SELECT COUNT(*) FROM FriendRequests WHERE sender_id = ? AND receiver_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, senderId);
@@ -99,7 +99,7 @@ public class FriendRequestDAO {
 
     // check user đã đồng ý kết bạn chưa
     public boolean hasReceivedRequest(int senderId, int receiverId) throws SQLException {
-        String query = "SELECT COUNT(*) FROM friend_requests WHERE sender_id = ? AND receiver_id = ?";
+        String query = "SELECT COUNT(*) FROM FriendRequests WHERE sender_id = ? AND receiver_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, senderId);

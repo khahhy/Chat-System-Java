@@ -53,4 +53,13 @@ public class GroupMemberBUS {
             return false;
         }
     }
+
+    public List<String> getAdminOrMem(int groupId, boolean isAdmin) {
+        try {
+            return groupMemberDAO.getAdminOrMem(groupId, isAdmin);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>(); 
+        }
+    }
 }

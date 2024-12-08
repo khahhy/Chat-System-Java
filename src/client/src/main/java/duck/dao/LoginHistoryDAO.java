@@ -9,12 +9,11 @@ import java.time.LocalDateTime;
 
 public class LoginHistoryDAO {
 
-    // lịch sử đăng nhập của user
+    // 1 user
     public List<LoginHistoryDTO> getLoginHistoryByUserId(int userId) throws SQLException {
         List<LoginHistoryDTO> loginHistoryList = new ArrayList<>();
-        String query = "SELECT lh.history_id, lh.user_id, lh.login_time, lh.logout_time, u.username, u.full_name " +
+        String query = "SELECT lh.history_id, lh.user_id, lh.login_time, lh.logout_time " +
                        "FROM LoginHistory lh " +
-                       "JOIN users u ON lh.user_id = u.user_id " +
                        "WHERE lh.user_id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -26,21 +25,18 @@ public class LoginHistoryDAO {
                         rs.getInt("history_id"),
                         rs.getInt("user_id"),
                         rs.getTimestamp("login_time").toLocalDateTime(),
-                        rs.getTimestamp("logout_time") != null ? rs.getTimestamp("logout_time").toLocalDateTime() : null,
-                        rs.getString("username"),
-                        rs.getString("full_name")
+                        rs.getTimestamp("logout_time") != null ? rs.getTimestamp("logout_time").toLocalDateTime() : null
                 ));
             }
         }
         return loginHistoryList;
     }
 
-    // lịch sử đăng nhập của tất cả user
+    // tất cả user
     public List<LoginHistoryDTO> getAllLoginHistory() throws SQLException {
         List<LoginHistoryDTO> loginHistoryList = new ArrayList<>();
-        String query = "SELECT lh.history_id, lh.user_id, lh.login_time, lh.logout_time, u.username, u.full_name " +
+        String query = "SELECT lh.history_id, lh.user_id, lh.login_time, lh.logout_time " +
                        "FROM LoginHistory lh " +
-                       "JOIN users u ON lh.user_id = u.user_id " +
                        "ORDER BY lh.login_time";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -51,9 +47,7 @@ public class LoginHistoryDAO {
                         rs.getInt("history_id"),
                         rs.getInt("user_id"),
                         rs.getTimestamp("login_time").toLocalDateTime(),
-                        rs.getTimestamp("logout_time") != null ? rs.getTimestamp("logout_time").toLocalDateTime() : null,
-                        rs.getString("username"),
-                        rs.getString("full_name")
+                        rs.getTimestamp("logout_time") != null ? rs.getTimestamp("logout_time").toLocalDateTime() : null
                 ));
             }
         }
@@ -69,7 +63,7 @@ public class LoginHistoryDAO {
             if (loginHistory.getLogoutTime() != null) {
                 stmt.setTimestamp(3, Timestamp.valueOf(loginHistory.getLogoutTime()));
             } else {
-                stmt.setNull(3, Types.TIMESTAMP);  // Nếu không có thời gian logout, gán giá trị NULL
+                stmt.setNull(3, Types.TIMESTAMP);  
             }
             return stmt.executeUpdate() > 0;
         }

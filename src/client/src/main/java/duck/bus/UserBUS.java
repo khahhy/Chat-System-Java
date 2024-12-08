@@ -4,8 +4,10 @@ import duck.dao.UserDAO;
 import duck.dto.UserDTO;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class UserBUS {
     private UserDAO userDAO;
@@ -79,6 +81,15 @@ public class UserBUS {
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    public List<Map<String, Object>> getNewUsers(LocalDateTime startDate, LocalDateTime endDate) {
+        try {
+            return userDAO.getUserSignUp(startDate, endDate);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

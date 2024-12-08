@@ -1,5 +1,8 @@
 package duck.presentation.adminView;
 
+import duck.bus.SpamReportBUS;
+import duck.bus.UserBUS;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -14,59 +17,41 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 public class Admin_newUsers {
+    private UserBUS userBUS;
+    private List<Map<String, Object>> signupList;
+    private ObservableList<Map<String, Object>> newSignup;
+    private ObservableList<Map<String, Object>> filteredUsers;
 
-    public class User {
-        private String username;
-        private String fullName;
-        private LocalDateTime createdAt;
-
-        public User(String username, String fullName, LocalDateTime createdAt) {
-            this.username = username;
-            this.fullName = fullName;
-            this.createdAt = createdAt;
-        }
-
-        public String getUsername() {return username;}
-
-        public String getFullName() {return fullName;}
-
-        public String getFormattedCreatedAt() {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-            return createdAt.format(formatter);
-        }
-
-        public LocalDateTime getCreatedAt() {return createdAt;}
+   
+    public Admin_newUsers() {
+        userBUS = new UserBUS();
+        signupList = userBUS.getNewUsers(null, null);
+        newSignup = FXCollections.observableArrayList(signupList);
+        filteredUsers = FXCollections.observableArrayList(newSignup);
     }
-
-    private final ObservableList<User> users = FXCollections.observableArrayList(
-        new User("user01", "Nguyễn Văn A", LocalDateTime.now().minusDays(1)),
-        new User("user02", "Trần Thị B", LocalDateTime.now().minusDays(2)),
-        new User("user03", "Phạm Minh C", LocalDateTime.now().minusDays(3)),
-        new User("user04", "Đỗ Quốc D", LocalDateTime.now().minusDays(4)),
-        new User("user05", "Nguyễn Văn E", LocalDateTime.now().minusDays(5))
-    );
-
-    private final ObservableList<User> filteredUsers = FXCollections.observableArrayList(users);
-
+    
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-padding: 20;");
 
-        TableView<User> userTable = new TableView<>();
+        TableView<Map<String, Object>> userTable = new TableView<>();
         userTable.setItems(filteredUsers);
 
-        TableColumn<User, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
-        usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getUsername()));
+        TableColumn<Map<String, Object>, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
+        usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("username")));
         usernameColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<User, String> fullNameColumn = new TableColumn<>("Họ tên");
-        fullNameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getFullName()));
+        TableColumn<Map<String, Object>, String> fullNameColumn = new TableColumn<>("Họ tên");
+        fullNameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("fullname")));
         fullNameColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<User, String> createdAtColumn = new TableColumn<>("Thời gian tạo");
-        createdAtColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getFormattedCreatedAt()));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        TableColumn<Map<String, Object>, String> createdAtColumn = new TableColumn<>("Thời gian tạo");
+        createdAtColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(((LocalDateTime)data.getValue().get("createdAt")).format(formatter)));
         createdAtColumn.setStyle("-fx-alignment: CENTER;");
 
        
@@ -82,7 +67,7 @@ public class Admin_newUsers {
         return root;
     }
 
-    private HBox createControls(TableView<User> userTable, BorderPane root) {
+    private HBox createControls(TableView<Map<String, Object>> userTable, BorderPane root) {
         TextField searchField = new TextField();
         searchField.setPromptText("Lọc theo tên...");
         searchField.setPrefWidth(200);
@@ -95,53 +80,43 @@ public class Admin_newUsers {
         endDatePicker.setPromptText("Đến ngày");
         endDatePicker.setPrefWidth(150);
 
-        ComboBox<String> sortOptions = new ComboBox<>(FXCollections.observableArrayList(
-            "Tên A-Z", "Tên Z-A", "Thời gian mới nhất", "Thời gian cũ nhất"
-        ));
-        sortOptions.setValue("Tên A-Z");
-
         Button applyFilterButton = new Button("Lọc");
         applyFilterButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #4CAF50; -fx-text-fill: white;");
         applyFilterButton.setOnAction(_ -> {
             String keyword = searchField.getText().toLowerCase();
             LocalDateTime startDate = startDatePicker.getValue() != null ? startDatePicker.getValue().atStartOfDay() : null;
             LocalDateTime endDate = endDatePicker.getValue() != null ? endDatePicker.getValue().atTime(23, 59, 59) : null;
-
-            filteredUsers.setAll(users.filtered(user -> {
-                boolean matchesKeyword = user.getFullName().toLowerCase().contains(keyword);
-                boolean matchesDate = true;
-
-                if (startDate != null || endDate != null) {
-                    matchesDate = (startDate == null || !user.getCreatedAt().isBefore(startDate)) &&
-                                  (endDate == null || !user.getCreatedAt().isAfter(endDate));
-                }
-
-                return matchesKeyword && matchesDate;
-            }));
+        
+            List<Map<String, Object>> filteredList = newSignup.stream()
+                .filter(user -> {
+                    boolean matchesKeyword = true;
+                    boolean matchesDate = true;
+        
+                    if (!keyword.isEmpty()) {
+                        String fullName = ((String) user.get("fullname")).toLowerCase();
+                        matchesKeyword = fullName.contains(keyword);
+                    }
+        
+                    if (startDate != null || endDate != null) {
+                        LocalDateTime createdAt = (LocalDateTime) user.get("createdAt");
+                        matchesDate = (startDate == null || !createdAt.isBefore(startDate)) &&
+                                      (endDate == null || !createdAt.isAfter(endDate));
+                    }
+        
+                    return matchesKeyword && matchesDate;
+                })
+                .toList();
+        
+            filteredUsers.setAll(filteredList); 
         });
-
-        sortOptions.setOnAction(_ -> {
-            String sortChoice = sortOptions.getValue();
-            filteredUsers.sort((u1, u2) -> {
-                switch (sortChoice) {
-                    case "Tên A-Z":
-                        return u1.getFullName().compareToIgnoreCase(u2.getFullName());
-                    case "Tên Z-A":
-                        return u2.getFullName().compareToIgnoreCase(u1.getFullName());
-                    case "Thời gian mới nhất":
-                        return u2.getCreatedAt().compareTo(u1.getCreatedAt());
-                    case "Thời gian cũ nhất":
-                        return u1.getCreatedAt().compareTo(u2.getCreatedAt());
-                }
-                return 0;
-            });
-        });
+        
+      
 
         Button chartButton = new Button("Biểu đồ trực quan");
         chartButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #2196F3; -fx-text-fill: white;");
         chartButton.setOnAction(_ -> showChartPage(root));
 
-        HBox filters = new HBox(10, searchField, applyFilterButton, sortOptions, chartButton);
+        HBox filters = new HBox(10, searchField, startDatePicker, endDatePicker, applyFilterButton, chartButton);
         filters.setStyle("-fx-padding: 10; -fx-background-color: #f1f1f1; -fx-border-color: #ddd; -fx-border-width: 1;");
         return filters;
     }

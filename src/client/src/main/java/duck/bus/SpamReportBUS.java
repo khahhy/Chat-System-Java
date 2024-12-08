@@ -2,67 +2,54 @@ package duck.bus;
 
 import duck.dao.SpamReportDAO;
 import duck.dto.SpamReportDTO;
+import duck.dao.UserDAO;
+import duck.dto.UserDTO;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class SpamReportBUS {
     private SpamReportDAO spamReportDAO;
+    private UserDAO userDAO;
 
     public SpamReportBUS() {
-        spamReportDAO = new SpamReportDAO();
+        this.spamReportDAO = new SpamReportDAO();
+        this.userDAO = new UserDAO();
     }
 
-    public List<SpamReportDTO> getReportsByReporterId(int reporterId) {
+    // username, time
+    public List<Map<String, Object>> getSpamReports(String sortBy, LocalDateTime startTime, LocalDateTime endTime, String usernameFilter) {
         try {
-            return spamReportDAO.getReportsByReporterId(reporterId);
+            List<SpamReportDTO> reports = spamReportDAO.getSpamReports(sortBy, startTime, endTime, usernameFilter);
+            List<Map<String, Object>> report_detail = new ArrayList<>();
+
+            for (SpamReportDTO item : reports) {
+                Map<String, Object> record = new HashMap<>();
+                UserDTO user = userDAO.getUserById(item.getReportedId());
+
+                record.put("reportedId", user.getUserId());
+                record.put("username", user.getUsername());
+                record.put("reportTime", item.getCreatedAt());
+
+                report_detail.add(record);
+            }
+
+            return report_detail;
         } catch (SQLException e) {
             e.printStackTrace();
             return new ArrayList<>();
         }
     }
 
-  
-    public List<SpamReportDTO> getReportsByReportedId(int reportedId) {
+    
+    public boolean lockUser(int userId) {
         try {
-            return spamReportDAO.getReportsByReportedId(reportedId);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
-    }
-
-    public boolean addSpamReport(SpamReportDTO report) {
-        try {
-            return spamReportDAO.addSpamReport(report);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public boolean deleteSpamReport(int reportId) {
-        try {
-            return spamReportDAO.deleteSpamReport(reportId);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public boolean deleteReportsByReportedId(int reportedId) {
-        try {
-            return spamReportDAO.deleteReportsByReportedId(reportedId);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public boolean deleteReportsByReporterId(int reporterId) {
-        try {
-            return spamReportDAO.deleteReportsByReporterId(reporterId);
+            return spamReportDAO.lockUser(userId);
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

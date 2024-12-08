@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FriendDAO {
-
-    // list bạn bè của user
     public List<FriendDTO> getFriendsByUserId(int userId) throws SQLException {
         List<FriendDTO> friendList = new ArrayList<>();
         String query = "SELECT * FROM friends WHERE user_id = ?";
@@ -42,7 +40,7 @@ public class FriendDAO {
         }
     }
 
-    // block
+    
     public boolean updateFriend(FriendDTO friend) throws SQLException {
         String query = "UPDATE friends SET is_blocked = ?, created_at = ? WHERE user_id = ? AND friend_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -65,7 +63,7 @@ public class FriendDAO {
         }
     }
 
-    // check có là bạn bè k
+    
     public boolean isFriend(int userId, int friendId) throws SQLException {
         String query = "SELECT COUNT(*) FROM friends WHERE user_id = ? AND friend_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -76,4 +74,43 @@ public class FriendDAO {
             return rs.next() && rs.getInt(1) > 0;
         }
     }
+
+    // cua admin
+    public int getTotalFriends(int userId) throws SQLException {
+        String query = "SELECT COUNT(*) AS totalFriends FROM friends WHERE user_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("totalFriends");
+            }
+        }
+        return 0; 
+    }
+
+    // cua admin
+    public int getTotalFriendsOfFriends(int userId) throws SQLException {
+        String query = "SELECT SUM(totalFriendCounts.totalFriends) AS totalFriendsOfAllFriends " +
+                       "FROM ( " +
+                       "  SELECT f2.user_id AS friendId, COUNT(f3.friend_id) AS totalFriends " +
+                       "  FROM friends f1 " +
+                       "  LEFT JOIN friends f2 ON f1.friend_id = f2.user_id " +
+                       "  LEFT JOIN friends f3 ON f2.user_id = f3.user_id " +
+                       "  WHERE f1.user_id = ? " +
+                       "  GROUP BY f2.user_id " +
+                       ") totalFriendCounts";
+    
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("totalFriendsOfAllFriends");
+            }
+        }
+        return 0; 
+    }
+    
+    
 }

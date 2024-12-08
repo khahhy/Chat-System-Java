@@ -3,9 +3,12 @@ package duck.dao;
 import duck.dto.UserDTO;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UserDAO {
 
@@ -113,4 +116,70 @@ public class UserDAO {
             return stmt.executeUpdate() > 0;
         }
     }
+
+   
+    public UserDTO getUserById(int userId) throws SQLException {
+        String query = "SELECT * FROM users WHERE user_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return new UserDTO(
+                    rs.getInt("user_id"),
+                    rs.getString("username"),
+                    rs.getString("full_name"),
+                    rs.getString("address"),
+                    rs.getTimestamp("date_of_birth").toLocalDateTime(),
+                    rs.getString("gender").charAt(0),
+                    rs.getString("email"),
+                    rs.getString("password"),
+                    rs.getBoolean("status"),
+                    rs.getBoolean("is_online"),
+                    rs.getTimestamp("created_at").toLocalDateTime(),
+                    rs.getBoolean("is_admin")
+                );
+            }
+        }
+        return null; 
+    }
+
+    public List<Map<String, Object>> getUserSignUp(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        List<Map<String, Object>> userList = new ArrayList<>();
+        String query;
+        
+        if (startDate == null && endDate == null) {
+            query = "SELECT username, full_name, created_at FROM users";
+        } else if (startDate == null) {
+            query = "SELECT username, full_name, created_at FROM users WHERE created_at <= ?";
+        } else if (endDate == null) {
+            query = "SELECT username, full_name, created_at FROM users WHERE created_at >= ?";
+        } else {
+            query = "SELECT username, full_name, created_at FROM users WHERE created_at BETWEEN ? AND ?";
+        }
+    
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            if (startDate != null && endDate != null) {
+                stmt.setTimestamp(1, Timestamp.valueOf(startDate));
+                stmt.setTimestamp(2, Timestamp.valueOf(endDate));
+            } else if (startDate != null) {
+                stmt.setTimestamp(1, Timestamp.valueOf(startDate));
+            } else if (endDate != null) {
+                stmt.setTimestamp(1, Timestamp.valueOf(endDate));
+            }
+    
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Map<String, Object> user = new HashMap<>();
+                user.put("username", rs.getString("username"));
+                user.put("fullname", rs.getString("full_name"));
+                user.put("createdAt", rs.getTimestamp("created_at").toLocalDateTime());
+                userList.add(user);
+            }
+        }
+    
+        return userList;
+    }
+    
 }

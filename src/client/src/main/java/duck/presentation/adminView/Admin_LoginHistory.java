@@ -1,7 +1,6 @@
 package duck.presentation.adminView;
 
 import duck.bus.LoginHistoryBUS;
-import duck.dto.LoginHistoryDTO;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -14,11 +13,12 @@ import javafx.stage.Stage;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 public class Admin_LoginHistory {
     private LoginHistoryBUS login_history_BUS;
-    List<LoginHistoryDTO> loginHistoryList;
-    ObservableList<LoginHistoryDTO> loginHistories;
+    List<Map<String, Object>> loginHistoryList;
+    ObservableList<Map<String, Object>> loginHistories;
 
     public Admin_LoginHistory() {
         login_history_BUS = new LoginHistoryBUS();
@@ -31,17 +31,20 @@ public class Admin_LoginHistory {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-padding: 20;");
 
-        TableView<LoginHistoryDTO> loginTable = new TableView<>();
+        TableView<Map<String, Object>> loginTable = new TableView<>();
         loginTable.setItems(loginHistories);
 
-        TableColumn<LoginHistoryDTO, String> timestampColumn = new TableColumn<>("Thời gian");
-        timestampColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(formatTimestamp(data.getValue().getLoginTime())));
+        TableColumn<Map<String, Object>, String> timestampColumn = new TableColumn<>("Thời gian");
+        timestampColumn.setCellValueFactory(data -> {
+            LocalDateTime loginTime = (LocalDateTime) data.getValue().get("loginTime");
+            return new javafx.beans.property.SimpleStringProperty(formatTimestamp(loginTime));
+        });
 
-        TableColumn<LoginHistoryDTO, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
-        usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getUsername()));
+        TableColumn<Map<String, Object>, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
+        usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("username")));
 
-        TableColumn<LoginHistoryDTO, String> fullNameColumn = new TableColumn<>("Họ tên");
-        fullNameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getFullName()));
+        TableColumn<Map<String, Object>, String> fullNameColumn = new TableColumn<>("Họ tên");
+        fullNameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("fullname")));
 
         loginTable.getColumns().addAll(timestampColumn, usernameColumn, fullNameColumn);
         loginTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);

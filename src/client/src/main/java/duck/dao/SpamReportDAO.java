@@ -3,22 +3,55 @@ package duck.dao;
 import duck.dto.SpamReportDTO;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SpamReportDAO {
+    public List<SpamReportDTO> getSpamReports(String sortBy, LocalDateTime startTime, LocalDateTime endTime, String usernameFilter) throws SQLException {
+        List<SpamReportDTO> spamReportList = new ArrayList<>();
+        StringBuilder query = new StringBuilder(
+                "SELECT sr.report_id, sr.reporter_id, sr.reported_id, sr.reason, sr.created_at, d.username AS reported_username " +
+                "FROM SpamReports sr " +
+                "JOIN users d ON sr.reported_id = d.user_id " +
+                "WHERE 1=1");
 
-    // tất cả báo cáo spam của một user
-    public List<SpamReportDTO> getReportsByReporterId(int reporterId) throws SQLException {
-        List<SpamReportDTO> reports = new ArrayList<>();
-        String query = "SELECT * FROM spam_reports WHERE reporter_id = ?";
         
+        if (startTime != null && endTime != null) {
+            query.append(" AND sr.created_at BETWEEN ? AND ?");
+        }
+
+        
+        if (usernameFilter != null && !usernameFilter.isEmpty()) {
+            query.append(" AND d.username LIKE ?");
+        }
+
+        
+        if ("time".equalsIgnoreCase(sortBy)) {
+            query.append(" ORDER BY sr.created_at DESC");
+        } else if ("username".equalsIgnoreCase(sortBy)) {
+            query.append(" ORDER BY d.username");
+        } else {
+            query.append(" ORDER BY sr.created_at DESC"); 
+        }
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, reporterId);
+             PreparedStatement stmt = conn.prepareStatement(query.toString())) {
+
+            int paramIndex = 1;
+
+            if (startTime != null && endTime != null) {
+                stmt.setTimestamp(paramIndex++, Timestamp.valueOf(startTime));
+                stmt.setTimestamp(paramIndex++, Timestamp.valueOf(endTime));
+            }
+
+            if (usernameFilter != null && !usernameFilter.isEmpty()) {
+                stmt.setString(paramIndex++, "%" + usernameFilter + "%");
+            }
+
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                reports.add(new SpamReportDTO(
+                spamReportList.add(new SpamReportDTO(
                         rs.getInt("report_id"),
                         rs.getInt("reporter_id"),
                         rs.getInt("reported_id"),
@@ -27,71 +60,36 @@ public class SpamReportDAO {
                 ));
             }
         }
-        return reports;
+
+        return spamReportList;
     }
 
-    // Lấy tất cả báo cáo spam của một người bị báo cáo
-    public List<SpamReportDTO> getReportsByReportedId(int reportedId) throws SQLException {
-        List<SpamReportDTO> reports = new ArrayList<>();
-        String query = "SELECT * FROM spam_reports WHERE reported_id = ?";
-        
+    
+    public boolean lockUser(int userId) throws SQLException {
+        String lockUserQuery = "UPDATE users SET status = false WHERE user_id = ?";
+        String deleteReportsQuery = "DELETE FROM SpamReports WHERE reported_id = ?";
+    
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, reportedId);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                reports.add(new SpamReportDTO(
-                        rs.getInt("report_id"),
-                        rs.getInt("reporter_id"),
-                        rs.getInt("reported_id"),
-                        rs.getString("reason"),
-                        rs.getTimestamp("created_at").toLocalDateTime()
-                ));
+             PreparedStatement lockStmt = conn.prepareStatement(lockUserQuery);
+             PreparedStatement deleteStmt = conn.prepareStatement(deleteReportsQuery)) {
+    
+            conn.setAutoCommit(false);
+    
+            lockStmt.setInt(1, userId);
+            int lockResult = lockStmt.executeUpdate();
+    
+            deleteStmt.setInt(1, userId);
+            int deleteResult = deleteStmt.executeUpdate();
+            conn.commit();
+    
+            return lockResult > 0 && deleteResult >= 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try (Connection conn = DatabaseConnection.getConnection()) {
+                conn.rollback();
             }
-        }
-        return reports;
-    }
-
-    // Thêm một báo cáo spam mới
-    public boolean addSpamReport(SpamReportDTO report) throws SQLException {
-        String query = "INSERT INTO spam_reports (reporter_id, reported_id, reason, created_at) VALUES (?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, report.getReporterId());
-            stmt.setInt(2, report.getReportedId());
-            stmt.setString(3, report.getReason());
-            stmt.setTimestamp(4, Timestamp.valueOf(report.getCreatedAt()));
-            return stmt.executeUpdate() > 0;
+            throw e;
         }
     }
-
-    // Xóa một báo cáo spam theo reportId
-    public boolean deleteSpamReport(int reportId) throws SQLException {
-        String query = "DELETE FROM spam_reports WHERE report_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, reportId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
-
-    // Xóa tất cả báo cáo spam của một người bị báo cáo
-    public boolean deleteReportsByReportedId(int reportedId) throws SQLException {
-        String query = "DELETE FROM spam_reports WHERE reported_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, reportedId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
-
-    // Xóa tất cả báo cáo spam của một người báo cáo
-    public boolean deleteReportsByReporterId(int reporterId) throws SQLException {
-        String query = "DELETE FROM spam_reports WHERE reporter_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, reporterId);
-            return stmt.executeUpdate() > 0;
-        }
-    }
+    
 }
