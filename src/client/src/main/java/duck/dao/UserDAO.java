@@ -1,5 +1,6 @@
 package duck.dao;
 
+import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
 
 import java.sql.*;
@@ -290,4 +291,30 @@ public class UserDAO {
         }
         return false;  // Nếu có lỗi khi cập nhật
     }
+
+    public List<FriendDTO> getFriendsByUserId(int userId) throws SQLException {
+        List<FriendDTO> friends = new ArrayList<>();
+        String query = "SELECT * FROM friends WHERE user_id = ?";
+    
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+    
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    friends.add(new FriendDTO(
+                        rs.getInt("user_id"),
+                        rs.getInt("friend_id"),
+                        rs.getBoolean("is_blocked"),
+                        rs.getTimestamp("created_at").toLocalDateTime()
+                    ));
+                }
+            }
+        }
+    
+        return friends;
+    }
+    
+
+    
 }

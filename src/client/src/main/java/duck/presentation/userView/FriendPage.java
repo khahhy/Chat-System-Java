@@ -1,5 +1,7 @@
 package duck.presentation.userView;
-
+import duck.bus.UserBUS;
+import duck.dto.UserDTO;
+import duck.presentation.ClientApp;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.*;
@@ -7,6 +9,12 @@ import javafx.scene.layout.*;
 
 
 public class FriendPage {
+
+    private final UserDTO user;
+    
+    public FriendPage(UserDTO user) {
+        this.user = user;
+    }
     // tạo tạm để chạy ui
     public class Friend {
         private final String name;
@@ -39,7 +47,7 @@ public class FriendPage {
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
 
-        VBox leftMenu = createLeftMenu(root);
+        VBox leftMenu = createLeftMenu(root, user);
         root.setLeft(leftMenu);
 
         VBox defaultContent = new VBox();
@@ -48,7 +56,7 @@ public class FriendPage {
         return root;
     }
 
-    private VBox createLeftMenu(BorderPane root) {
+    private VBox createLeftMenu(BorderPane root, UserDTO user) {
         VBox leftMenu = new VBox(10);
         leftMenu.setStyle("-fx-background-color: #E7ECEF; -fx-padding: 10;");
         leftMenu.setPrefWidth(320);
@@ -119,7 +127,7 @@ public class FriendPage {
         friendRequestsButton.setStyle("-fx-font-size: 14px;");
         groupRequestsButton.setStyle("-fx-font-size: 14px;");
 
-        friendListButton.setOnAction(_ -> root.setCenter(new FriendListView().getContent()));
+        friendListButton.setOnAction(_ -> root.setCenter(new FriendListView(user).getContent()));
         groupListButton.setOnAction(_ -> root.setCenter(new GroupListView().getContent()));
         friendRequestsButton.setOnAction(_ -> root.setCenter(new FriendRequestView().getContent()));
         groupRequestsButton.setOnAction(_ -> root.setCenter(new GroupRequestView().getContent()));

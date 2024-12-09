@@ -1,6 +1,7 @@
 package duck.bus;
 
 import duck.dao.UserDAO;
+import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
 
 import java.sql.SQLException;
@@ -97,4 +98,24 @@ public class UserBUS {
         UserDAO userDAO = new UserDAO();
         return userDAO.getUserByEmail(email);
     }
+
+    public List<FriendDTO> getFriendList(int userId) {
+        try {
+            return userDAO.getFriendsByUserId(userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    public UserDTO getUserById(int userId) {
+        try {
+            return userDAO.getUserById(userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+
 }

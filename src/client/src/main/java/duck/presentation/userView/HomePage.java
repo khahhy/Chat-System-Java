@@ -79,7 +79,7 @@ public class HomePage {
                     root.setCenter(new MessagePage().getContent());
                     break;
                 case "friend":
-                    root.setCenter(new FriendPage().getContent());
+                    root.setCenter(new FriendPage(user).getContent());
                     break;
                 case "settings":
                     footer_Dropdown(button, root);
