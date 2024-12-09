@@ -1,6 +1,7 @@
 package duck.presentation.userView;
 import duck.presentation.ClientApp;
-
+import duck.bus.UserBUS;
+import duck.dto.UserDTO;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -13,11 +14,13 @@ import java.util.List;
 
 public class HomePage {
     private final ClientApp app; 
+    private final UserDTO user;
 
     private final List<Button> sidebarButtons = new ArrayList<>();
 
-    public HomePage(ClientApp app) {
+    public HomePage(ClientApp app, UserDTO user) {
         this.app = app;
+        this.user = user;
     }
 
     public BorderPane getContent() {
@@ -70,7 +73,7 @@ public class HomePage {
         button.setOnAction(e -> {
             switch (pageName) {
                 case "profile":
-                    new PopupProfile(root).showPopup();
+                    new PopupProfile(root, user).showPopup();
                     break;
                 case "message":
                     root.setCenter(new MessagePage().getContent());
@@ -95,7 +98,7 @@ public class HomePage {
         
         MenuItem editPasswordItem = new MenuItem("Edit Password");
         editPasswordItem.setOnAction(e -> {
-            new PopupEditPw(root, "test pw").showEditPwPopup();
+            new PopupEditPw(root, user).showEditPwPopup();
         });
     
         

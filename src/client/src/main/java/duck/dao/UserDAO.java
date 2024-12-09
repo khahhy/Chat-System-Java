@@ -66,7 +66,12 @@ public class UserDAO {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getFullName());
             stmt.setString(3, user.getAddress());
-            stmt.setTimestamp(4, Timestamp.valueOf(user.getDateOfBirth()));
+            // Kiểm tra và gắn giá trị date_of_birth
+            if (user.getDateOfBirth() != null) {
+                stmt.setTimestamp(4, Timestamp.valueOf(user.getDateOfBirth()));
+            } else {
+                stmt.setNull(4, Types.TIMESTAMP);
+            }
             stmt.setString(5, String.valueOf(user.getGender()));
             stmt.setString(6, user.getEmail());
             stmt.setString(7, user.getPassword());
@@ -182,4 +187,107 @@ public class UserDAO {
         return userList;
     }
     
+
+    public UserDTO getUserByEmail(String email) {
+        UserDTO user = null;
+        
+        // Kết nối cơ sở dữ liệu
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            // Truy vấn SQL để tìm người dùng theo email
+            String query = "SELECT * FROM Users WHERE email = ?";
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
+                statement.setString(1, email);  // Set email vào câu truy vấn
+                ResultSet resultSet = statement.executeQuery();
+                
+                // Nếu tìm thấy người dùng, khởi tạo đối tượng UserDTO
+                if (resultSet.next()) {
+                    int userId = resultSet.getInt("user_id");
+                    String username = resultSet.getString("username");
+                    String fullName = resultSet.getString("full_name");
+                    String address = resultSet.getString("address");
+                    
+                    // Kiểm tra và xử lý trường hợp date_of_birth và created_at có thể null
+                    LocalDateTime dateOfBirth = null;
+                    if (resultSet.getTimestamp("date_of_birth") != null) {
+                        dateOfBirth = resultSet.getTimestamp("date_of_birth").toLocalDateTime();
+                    }
+                    
+                    char gender = resultSet.getString("gender").charAt(0);
+                    String password = resultSet.getString("password");
+                    boolean status = resultSet.getBoolean("status");
+                    boolean isOnline = resultSet.getBoolean("is_online");
+                    
+                    LocalDateTime createdAt = null;
+                    if (resultSet.getTimestamp("created_at") != null) {
+                        createdAt = resultSet.getTimestamp("created_at").toLocalDateTime();
+                    }
+                    
+                    boolean isAdmin = resultSet.getBoolean("is_admin");
+                    
+                    // Tạo đối tượng UserDTO
+                    user = new UserDTO(userId, username, fullName, address, dateOfBirth, gender, email, password, status, isOnline, createdAt, isAdmin);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Xử lý lỗi kết nối cơ sở dữ liệu
+        }
+        
+        return user;  // Trả về đối tượng UserDTO nếu tìm thấy, hoặc null nếu không tìm thấy
+    }
+    
+    public boolean updatePasswordByEmail(String email, String newPassword) {
+        // Kết nối với cơ sở dữ liệu và thực hiện câu lệnh SQL để cập nhật mật khẩu
+        String updateQuery = "UPDATE users SET password = ? WHERE email = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+
+            preparedStatement.setString(1, newPassword);  // Đặt mật khẩu mới
+            preparedStatement.setString(2, email);  // Đặt email của người dùng
+
+            int rowsUpdated = preparedStatement.executeUpdate();
+            return rowsUpdated > 0;  // Trả về true nếu cập nhật thành công
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;  // Trả về false nếu có lỗi
+        }
+    }
+
+    public boolean checkOldPassword(int userId, String oldPassword) {
+        // Truy vấn cơ sở dữ liệu để lấy mật khẩu cũ của người dùng
+        String query = "SELECT password FROM users WHERE user_id = ?";
+        
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setInt(1, userId);
+            ResultSet rs = statement.executeQuery();
+            
+            if (rs.next()) {
+                String currentPassword = rs.getString("password");
+                return currentPassword.equals(oldPassword);  // So sánh mật khẩu cũ
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;  // Nếu không tìm thấy người dùng hoặc mật khẩu không khớp
+    }
+
+    // Phương thức cập nhật mật khẩu mới của người dùng
+    public boolean updatePassword(int userId, String newPassword) {
+        String updateQuery = "UPDATE users SET password = ? WHERE user_id = ?";
+        
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+            preparedStatement.setString(1, newPassword);
+            preparedStatement.setInt(2, userId);
+
+            int rowsUpdated = preparedStatement.executeUpdate();
+            return rowsUpdated > 0;  // Trả về true nếu cập nhật thành công
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;  // Nếu có lỗi khi cập nhật
+    }
 }

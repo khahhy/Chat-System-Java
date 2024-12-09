@@ -1,5 +1,7 @@
 package duck.presentation.userView;
 
+import duck.dto.UserDTO;
+import duck.dao.UserDAO;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -15,19 +17,18 @@ import javafx.stage.StageStyle;
 public class PopupEditPw {
 
     private final BorderPane mainRoot; // Tham chiếu đến BorderPane chính
-    private final String currentPassword; // Mật khẩu hiện tại để kiểm tra
+    private final UserDTO user; // Thông tin người dùng (bao gồm userId, email, password)
 
-    public PopupEditPw(BorderPane mainRoot, String currentPassword) {
+    public PopupEditPw(BorderPane mainRoot, UserDTO user) {
         this.mainRoot = mainRoot;
-        this.currentPassword = currentPassword; // Mật khẩu hiện tại để so sánh
+        this.user = user; // Tham chiếu đối tượng userDTO
     }
 
-    public String showEditPwPopup() {
+    public void showEditPwPopup() {
         // Tạo Stage cho popup
         Stage editPwStage = new Stage();
         editPwStage.initModality(Modality.APPLICATION_MODAL); // Chặn tương tác với cửa sổ chính
         editPwStage.initStyle(StageStyle.TRANSPARENT);
-
 
         // Khung nội dung
         VBox content = new VBox(10);
@@ -71,7 +72,8 @@ public class PopupEditPw {
             String confirmPassword = confirmPasswordField.getText();
 
             // Kiểm tra mật khẩu cũ có đúng không
-            if (!oldPassword.equals(currentPassword)) {
+            UserDAO userDAO = new UserDAO();
+            if (!userDAO.checkOldPassword(user.getUserId(), oldPassword)) {
                 errorLabel.setText("Mật khẩu cũ không đúng.");
                 errorLabel.setVisible(true);
                 return;
@@ -90,10 +92,17 @@ public class PopupEditPw {
                 return;
             }
 
-            // Lưu thành công
-            errorLabel.setVisible(false);
-            System.out.println("Mật khẩu đã được thay đổi thành: " + newPassword);
-            editPwStage.close();
+            // Cập nhật mật khẩu mới
+            boolean isUpdated = userDAO.updatePassword(user.getUserId(), newPassword);
+
+            if (isUpdated) {
+                errorLabel.setText("Mật khẩu đã được thay đổi thành công.");
+                errorLabel.setTextFill(Color.GREEN);
+                errorLabel.setVisible(true);
+            } else {
+                errorLabel.setText("Lỗi khi cập nhật mật khẩu.");
+                errorLabel.setVisible(true);
+            }
         });
 
         // Thêm các thành phần vào VBox
@@ -113,7 +122,5 @@ public class PopupEditPw {
         editPwStage.setScene(editPwScene);
 
         editPwStage.showAndWait();
-
-        return null; // Trả về giá trị sau này nếu cần
     }
 }

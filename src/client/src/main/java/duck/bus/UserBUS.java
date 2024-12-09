@@ -92,4 +92,9 @@ public class UserBUS {
             return null;
         }
     }
+
+    public UserDTO getUserByEmail(String email) {
+        UserDAO userDAO = new UserDAO();
+        return userDAO.getUserByEmail(email);
+    }
 }

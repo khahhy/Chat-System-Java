@@ -1,5 +1,7 @@
 package duck.presentation.userView;
 
+import duck.bus.UserBUS;
+import duck.dto.UserDTO;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -14,17 +16,18 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 public class PopupEditProfile {
+    private final BorderPane mainRoot;
+    private final Label genderLabel;
+    private final Label dobLabel;
+    private final Label addressLabel;
+    private final UserDTO user;
 
-    private final BorderPane mainRoot; // Tham chiếu đến BorderPane chính
-    private final Label genderLabel; // Tham chiếu đến Label giới tính
-    private final Label dobLabel; // Tham chiếu đến Label ngày sinh
-    private final Label phoneLabel; // Tham chiếu đến Label số điện thoại
-
-    public PopupEditProfile(BorderPane mainRoot, Label genderLabel, Label dobLabel, Label phoneLabel) {
+    public PopupEditProfile(BorderPane mainRoot, Label genderLabel, Label dobLabel, Label addressLabel, UserDTO user) {
         this.mainRoot = mainRoot;
         this.genderLabel = genderLabel;
         this.dobLabel = dobLabel;
-        this.phoneLabel = phoneLabel;
+        this.addressLabel = addressLabel;
+        this.user = user;
     }
 
     public void showEditPopup() {
@@ -41,17 +44,21 @@ public class PopupEditProfile {
                 + "-fx-border-color: #cccccc; -fx-border-width: 1; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);");
         content.setPrefSize(300, 300);
 
-      
         Label titleLabel = new Label("Chỉnh sửa thông tin");
         titleLabel.setFont(new Font("Arial", 16));
         titleLabel.setStyle("-fx-font-weight: bold;");
 
-        
-        TextField genderField = new TextField("Nam");
-        TextField dobField = new TextField("01/01/2000");
-        TextField phoneField = new TextField("0123456789");
+        // Khởi tạo các trường nhập với dữ liệu từ user
+        String currentGender = user.getGender() == 'M' ? "Nam" : user.getGender() == 'F' ? "Nữ" : "";
+        TextField genderField = new TextField(currentGender);
 
-        // hủy
+        String currentDob = user.getDateOfBirth() != null ? user.getDateOfBirth().toLocalDate().toString() : "2000-01-01";
+        TextField dobField = new TextField(currentDob);
+
+        String currentAddress = user.getAddress() != null ? user.getAddress() : "Chưa có địa chỉ";
+        TextField addressField = new TextField(currentAddress);
+
+        // Nút hủy
         Button cancelButton = new Button("Hủy");
         cancelButton.setStyle("-fx-background-color: #cccccc; -fx-text-fill: black; -fx-padding: 5 10; -fx-border-radius: 5;");
         cancelButton.setOnAction(_ -> editStage.close());
@@ -60,21 +67,36 @@ public class PopupEditProfile {
         Button saveButton = new Button("Lưu");
         saveButton.setStyle("-fx-background-color: #6c63ff; -fx-text-fill: white; -fx-padding: 5 10; -fx-border-radius: 5;");
         saveButton.setOnAction(e -> {
-            // cập nhật lại trong profile lun
-            genderLabel.setText("Giới tính: " + genderField.getText());
-            dobLabel.setText("Ngày sinh: " + dobField.getText());
-            phoneLabel.setText("Số điện thoại: " + phoneField.getText());
+            // Cập nhật lại user
+            user.setGender(genderField.getText().equalsIgnoreCase("Nam") ? 'M' : 
+                           genderField.getText().equalsIgnoreCase("Nữ") ? 'F' : 'U');
+            user.setDateOfBirth(java.time.LocalDate.parse(dobField.getText()).atStartOfDay());
+            user.setAddress(addressField.getText());
 
-            editStage.close();
+            // Tạo đối tượng UserBUS và gọi phương thức updateUser()
+            UserBUS userBUS = new UserBUS();
+            boolean updateSuccess = userBUS.updateUser(user); // Gọi phương thức updateUser() từ đối tượng UserBUS
+            if (updateSuccess) {
+                // Cập nhật lại các Label trong PopupProfile
+                genderLabel.setText("Giới tính: " + genderField.getText());
+                dobLabel.setText("Ngày sinh: " + dobField.getText());
+                addressLabel.setText("Địa chỉ: " + addressField.getText());
+                
+                // Đóng cửa sổ chỉnh sửa
+                editStage.close();
+            } else {
+                // Hiển thị thông báo lỗi nếu cập nhật thất bại
+                System.out.println("Cập nhật thông tin không thành công");
+            }
         });
 
-        content.getChildren().addAll(titleLabel, genderField, dobField, phoneField, saveButton, cancelButton);
+        content.getChildren().addAll(titleLabel, genderField, dobField, addressField, saveButton, cancelButton);
 
         Scene editScene = new Scene(content);
         editScene.setFill(Color.TRANSPARENT);
 
         editStage.setScene(editScene);
         editStage.setOnHidden(_ -> mainRoot.setEffect(null));
-        editStage.showAndWait(); // đợi popup đóng
+        editStage.showAndWait(); // Đợi popup đóng
     }
 }

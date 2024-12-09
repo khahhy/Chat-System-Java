@@ -1,5 +1,6 @@
 package duck.presentation.userView;
-
+import duck.bus.UserBUS;
+import duck.dto.UserDTO;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -13,11 +14,12 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 public class PopupProfile {
-
+    private final UserDTO user;
     private final BorderPane mainRoot; 
 
-    public PopupProfile(BorderPane mainRoot) {
+    public PopupProfile(BorderPane mainRoot, UserDTO user) {
         this.mainRoot = mainRoot;
+        this.user = user;
     }
     
     public void showPopup() {
@@ -39,16 +41,18 @@ public class PopupProfile {
         titleLabel.setFont(new Font("Arial", 16));
         titleLabel.setStyle("-fx-font-weight: bold;");
 
-        
-        Label genderLabel = new Label("Giới tính: Nam");
-        Label dobLabel = new Label("Ngày sinh: 01/01/2000");
-        Label phoneLabel = new Label("Số điện thoại: 0123456789");
+        Label genderLabel = new Label("Giới tính: " + 
+    (user.getGender() == 'M' ? "Nam" : user.getGender() == 'F' ? "Nữ" : ""));
 
+        Label dobLabel = new Label("Ngày sinh: " + 
+    (user.getDateOfBirth() != null ? user.getDateOfBirth().toLocalDate() : "01/01/2000"));
+
+        Label addressLabel = new Label("Địa chỉ: " + user.getAddress());
         // Nút edit
         Button editButton = new Button("Chỉnh sửa thông tin");
         editButton.setStyle("-fx-background-color: #6c63ff; -fx-text-fill: white; -fx-padding: 5 10; -fx-border-radius: 5;");
         editButton.setOnAction(_ -> {
-            new PopupEditProfile(mainRoot, genderLabel, dobLabel, phoneLabel).showEditPopup();
+            new PopupEditProfile(mainRoot, genderLabel, dobLabel, addressLabel, user).showEditPopup();
         });
 
         // Nút thoát
@@ -60,7 +64,7 @@ public class PopupProfile {
         });
 
         
-        content.getChildren().addAll(titleLabel, genderLabel, dobLabel, phoneLabel, editButton, closeButton);
+        content.getChildren().addAll(titleLabel, genderLabel, dobLabel, addressLabel, editButton, closeButton);
 
         Scene popupScene = new Scene(content);
         popupScene.setFill(Color.TRANSPARENT);

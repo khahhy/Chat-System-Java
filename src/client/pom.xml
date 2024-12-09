@@ -21,7 +21,11 @@
             <artifactId>postgresql</artifactId>
             <version>42.5.4</version> <!-- Hoặc phiên bản mới nhất -->
         </dependency>
-
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version> <!-- Hoặc phiên bản mới nhất -->
+        </dependency>
     </dependencies>
 
     <build>

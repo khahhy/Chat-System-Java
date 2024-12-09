@@ -2,7 +2,8 @@ package duck.presentation;
 import duck.presentation.adminView.*;
 import duck.presentation.userView.*;
 import duck.presentation.loginView.*;
-
+import duck.bus.UserBUS;
+import duck.dto.UserDTO;
 import duck.dao.DatabaseConnection;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -59,8 +60,8 @@ public class ClientApp extends Application {
     }
 
    
-    public void showHomePage() {
-        HomePage homePage = new HomePage(this);
+    public void showHomePage(UserDTO user) {
+        HomePage homePage = new HomePage(this, user);
         Scene scene = new Scene(homePage.getContent(), 1080, 720);
         scene.getStylesheets().add("style.css");
         primaryStage.setScene(scene);
@@ -75,8 +76,7 @@ public class ClientApp extends Application {
 
     public void showSignUpPage() {
         LoginPage loginPage = new LoginPage(this);
-        HomePage homePage = new HomePage(this);  // Nếu bạn cần homePage sau khi đăng ký thành công
-        RegisterPage registerPage = new RegisterPage(primaryStage, loginPage.getContent(), homePage.getContent());
+        RegisterPage registerPage = new RegisterPage(primaryStage, loginPage.getContent());
 
         Scene scene = new Scene(registerPage, 1080, 720);
         scene.getStylesheets().add("style.css");
