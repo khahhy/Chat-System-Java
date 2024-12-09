@@ -26,10 +26,6 @@ import java.util.Map;
 
         public class LoginPage {
 
-            private final Map<String, String> adminAccounts = Map.of(
-                "admin1", "password123", "admin2", "adminPass"
-            );
-
             private final ClientApp app; 
 
             public LoginPage(ClientApp app) {
@@ -80,29 +76,19 @@ import java.util.Map;
                     String username = usernameField.getText().trim();
                     String password = passwordField.getText().trim();
                 
-                    if (adminAccounts.containsKey(username) && adminAccounts.get(username).equals(password)) {
-                            UserDTO adminUser = new UserDTO(
-                                -1, // userId không áp dụng cho tài khoản admin tĩnh
-                                username,
-                                "Admin", // Tên đầy đủ tạm thời
-                                "", // Địa chỉ trống
-                                null, // Không có ngày sinh
-                                'M', // Giới tính mặc định
-                                "", // Email trống
-                                password,
-                                true, // Luôn hoạt động
-                                true, // Giả định đang trực tuyến
-                                LocalDateTime.now(), // Thời gian tạo tạm thời
-                                true // Là quản trị viên
-                            );
-                            showAdminOrUserChoicePopup(username, adminUser); // Truyền UserDTO thay vì String
-                        }
-                        else {
+                    // Kiểm tra xem tài khoản có phải admin không
+                    Optional<UserDTO> adminOpt = isAdmin(username, password);
+                    if (adminOpt.isPresent()) {
+                        UserDTO adminUser = adminOpt.get();
+                        showAdminOrUserChoicePopup(username, adminUser); // Hiển thị popup lựa chọn vai trò.
+                    } else {
+                        // Kiểm tra xem tài khoản có hợp lệ không (user thông thường)
                         Optional<UserDTO> userOpt = isValidUser(username, password);
                         if (userOpt.isPresent()) {
                             UserDTO user = userOpt.get(); // Lấy thông tin người dùng từ Optional.
                             app.showHomePage(user); // Chuyển đến trang chủ với đối tượng UserDTO.
                         } else {
+                            // Thông báo lỗi khi đăng nhập không hợp lệ.
                             Alert alert = new Alert(Alert.AlertType.ERROR);
                             alert.setTitle("Thông báo");
                             alert.setHeaderText(null);
@@ -143,7 +129,7 @@ import java.util.Map;
                 adminButton.setStyle("-fx-font-size: 14px;");
                 adminButton.setOnAction(_ -> {
                     popupStage.close();
-                    app.showAdminPage();
+                    app.showAdminPage(user);
                 });
                 adminButton.setPrefWidth(200);
 
@@ -208,6 +194,49 @@ import java.util.Map;
                 return Optional.empty(); // Trả về Optional.empty() nếu không tìm thấy tài khoản.
             }
             
+            private Optional<UserDTO> isAdmin(String username, String password) {
+                String query = "SELECT user_id, username, full_name, address, date_of_birth, gender, email, password, status, is_online, created_at, is_admin " +
+                               "FROM Users WHERE username = ? AND password = ? AND status = TRUE AND is_admin = TRUE";
+                try (Connection conn = DatabaseConnection.getConnection();
+                     PreparedStatement stmt = conn.prepareStatement(query)) {
+                    
+                    stmt.setString(1, username);
+                    stmt.setString(2, password); // Nếu mật khẩu được băm, xử lý băm trước khi so sánh.
+            
+                    ResultSet rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        // Kiểm tra giá trị date_of_birth
+                        LocalDateTime dateOfBirth = null;
+                        if (rs.getTimestamp("date_of_birth") != null) {
+                            dateOfBirth = rs.getTimestamp("date_of_birth").toLocalDateTime();
+                        }
+            
+                        // Kiểm tra giá trị gender
+                        String genderStr = rs.getString("gender");
+                        char gender = (genderStr != null && !genderStr.isEmpty()) ? genderStr.charAt(0) : 'U'; // 'U' cho unknown
+            
+                        UserDTO adminUser = new UserDTO(
+                            rs.getInt("user_id"),
+                            rs.getString("username"),
+                            rs.getString("full_name"),
+                            rs.getString("address"),
+                            dateOfBirth,
+                            gender,
+                            rs.getString("email"),
+                            rs.getString("password"),
+                            rs.getBoolean("status"),
+                            rs.getBoolean("is_online"),
+                            rs.getTimestamp("created_at").toLocalDateTime(),
+                            rs.getBoolean("is_admin")
+                        );
+                        return Optional.of(adminUser); // Trả về thông tin người dùng là admin.
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    // Ghi log hoặc xử lý lỗi tại đây nếu cần.
+                }
+                return Optional.empty(); // Trả về Optional.empty() nếu không tìm thấy admin.
+            }
 
 
         }

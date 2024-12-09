@@ -1,4 +1,5 @@
 package duck.presentation.adminView;
+import duck.dto.UserDTO;
 import duck.presentation.ClientApp;
 import duck.presentation.userView.PopupEditPw;
 
@@ -14,11 +15,12 @@ import java.util.List;
 
 public class AdminPage {
     private final ClientApp app; 
-
+    private final UserDTO user;
     private final List<Button> sidebarButtons = new ArrayList<>();
 
-    public AdminPage(ClientApp app) {
+    public AdminPage(ClientApp app, UserDTO user) {
         this.app = app;
+        this.user = user;
     }
 
     public BorderPane getContent() {
@@ -71,7 +73,7 @@ public class AdminPage {
         
         MenuItem editPasswordItem = new MenuItem("Edit Password");
         editPasswordItem.setOnAction(_ -> {
-            new PopupEditPw(root, "test pw").showEditPwPopup();
+            new PopupEditPw(root, user).showEditPwPopup();
         });
            
         MenuItem logoutItem = new MenuItem("Logout");
