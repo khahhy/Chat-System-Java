@@ -13,16 +13,16 @@ import java.util.Map;
 
 public class UserDAO {
 
-    // danh sách tất cả người dùng, lọc theo name, username, status, sắp xếp 
-    public List<UserDTO> getAllUsers(String filter, String sortBy, Boolean isActive) throws SQLException {
+    // danh sách tất cả người dùng, lọc theo name, username, online, sắp xếp 
+    public List<UserDTO> getAllUsers(String filter, String sortBy, Boolean isOnline) throws SQLException {
         List<UserDTO> userList = new ArrayList<>();
         StringBuilder query = new StringBuilder("SELECT * FROM users WHERE (username LIKE ? OR full_name LIKE ?)");
     
-        if (isActive != null) {
-            query.append(" AND status = ?");
+        if (isOnline != null) {
+            query.append(" AND is_online = ?");
         }
     
-        String[] validSortFields = {"username", "full_name", "created_at", "status"};
+        String[] validSortFields = {"username", "full_name", "created_at", "is_online"};
         if (Arrays.asList(validSortFields).contains(sortBy)) {
             query.append(" ORDER BY ").append(sortBy);
         } else {
@@ -34,18 +34,23 @@ public class UserDAO {
             stmt.setString(1, "%" + filter + "%");
             stmt.setString(2, "%" + filter + "%");
     
-            if (isActive != null) {
-                stmt.setBoolean(3, isActive); 
+            if (isOnline != null) {
+                stmt.setBoolean(3, isOnline); 
             }
     
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
+                LocalDateTime dateOfBirth = null;
+                Timestamp dobTimestamp = rs.getTimestamp("date_of_birth");
+                if (dobTimestamp != null) {
+                    dateOfBirth = dobTimestamp.toLocalDateTime();
+                }
                 userList.add(new UserDTO(
                         rs.getInt("user_id"),
                         rs.getString("username"),
                         rs.getString("full_name"),
                         rs.getString("address"),
-                        rs.getTimestamp("date_of_birth").toLocalDateTime(),
+                        dateOfBirth,
                         rs.getString("gender").charAt(0),
                         rs.getString("email"),
                         rs.getString("password"),
@@ -292,6 +297,7 @@ public class UserDAO {
         return false;  // Nếu có lỗi khi cập nhật
     }
 
+
     public List<FriendDTO> getFriendsByUserId(int userId) throws SQLException {
         List<FriendDTO> friends = new ArrayList<>();
         String query = "SELECT * FROM friends WHERE user_id = ?";
@@ -316,5 +322,104 @@ public class UserDAO {
     }
     
 
+    
+
+    public List<Map<String, Object>> getActivities(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        List<Map<String, Object>> activityList = new ArrayList<>();
+        
+        String query = "SELECT u.username, u.full_name, u.created_at, " +
+               "       COALESCE(lh.login_count, 0) AS logins, " +
+               "       COALESCE(mu.chat_user_count, 0) AS chatUsers, " +
+               "       COALESCE(mg.chat_group_count, 0) AS chatGroups, " +
+               "       (COALESCE(lh.login_count, 0) + COALESCE(mu.chat_user_count, 0) + COALESCE(mg.chat_group_count, 0)) AS totalActivities " +
+               "FROM users u " +
+               "LEFT JOIN ( " +
+               "    SELECT user_id, COUNT(*) AS login_count " +
+               "    FROM LoginHistory " +
+               "    WHERE (CAST(? AS TIMESTAMP) IS NULL OR login_time >= CAST(? AS TIMESTAMP)) " +
+               "      AND (CAST(? AS TIMESTAMP) IS NULL OR login_time <= CAST(? AS TIMESTAMP)) " +
+               "    GROUP BY user_id " +
+               ") lh ON u.user_id = lh.user_id " +
+               "LEFT JOIN ( " +
+               "    SELECT sender_id AS user_id, COUNT(DISTINCT receiver_id) AS chat_user_count " +
+               "    FROM messages " +
+               "    WHERE receiver_id IS NOT NULL AND (CAST(? AS TIMESTAMP) IS NULL OR timestamp >= CAST(? AS TIMESTAMP)) " +
+               "      AND (CAST(? AS TIMESTAMP) IS NULL OR timestamp <= CAST(? AS TIMESTAMP)) " +
+               "    GROUP BY sender_id " +
+               ") mu ON u.user_id = mu.user_id " +
+               "LEFT JOIN ( " +
+               "    SELECT sender_id AS user_id, COUNT(DISTINCT group_id) AS chat_group_count " +
+               "    FROM messages " +
+               "    WHERE group_id IS NOT NULL AND (CAST(? AS TIMESTAMP) IS NULL OR timestamp >= CAST(? AS TIMESTAMP)) " +
+               "      AND (CAST(? AS TIMESTAMP) IS NULL OR timestamp <= CAST(? AS TIMESTAMP)) " +
+               "    GROUP BY sender_id " +
+               ") mg ON u.user_id = mg.user_id";
+
+    
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            if (startDate == null) {
+                stmt.setNull(1, Types.TIMESTAMP);
+                stmt.setNull(2, Types.TIMESTAMP);
+            } else {
+                stmt.setTimestamp(1, Timestamp.valueOf(startDate));
+                stmt.setTimestamp(2, Timestamp.valueOf(startDate));
+            }
+            if (endDate == null) {
+                stmt.setNull(3, Types.TIMESTAMP);
+                stmt.setNull(4, Types.TIMESTAMP);
+            } else {
+                stmt.setTimestamp(3, Timestamp.valueOf(endDate));
+                stmt.setTimestamp(4, Timestamp.valueOf(endDate));
+            }
+          
+            if (startDate == null) {
+                stmt.setNull(5, Types.TIMESTAMP);
+                stmt.setNull(6, Types.TIMESTAMP);
+            } else {
+                stmt.setTimestamp(5, Timestamp.valueOf(startDate));
+                stmt.setTimestamp(6, Timestamp.valueOf(startDate));
+            }
+          
+            if (endDate == null) {
+                stmt.setNull(7, Types.TIMESTAMP);
+                stmt.setNull(8, Types.TIMESTAMP);
+            } else {
+                stmt.setTimestamp(7, Timestamp.valueOf(endDate));
+                stmt.setTimestamp(8, Timestamp.valueOf(endDate));
+            }
+          
+            if (startDate == null) {
+                stmt.setNull(9, Types.TIMESTAMP);
+                stmt.setNull(10, Types.TIMESTAMP);
+            } else {
+                stmt.setTimestamp(9, Timestamp.valueOf(startDate));
+                stmt.setTimestamp(10, Timestamp.valueOf(startDate));
+            }
+          
+            if (endDate == null) {
+                stmt.setNull(11, Types.TIMESTAMP);
+                stmt.setNull(12, Types.TIMESTAMP);
+            } else {
+                stmt.setTimestamp(11, Timestamp.valueOf(endDate));
+                stmt.setTimestamp(12, Timestamp.valueOf(endDate));
+            }
+          
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Map<String, Object> activity = new HashMap<>();
+                activity.put("username", rs.getString("username"));
+                activity.put("fullname", rs.getString("full_name"));
+                activity.put("logins", rs.getInt("logins"));
+                activity.put("chatUsers", rs.getInt("chatUsers"));
+                activity.put("chatGroups", rs.getInt("chatGroups"));
+                activity.put("createdAt", rs.getTimestamp("created_at").toLocalDateTime());
+                activity.put("totalActivities", rs.getInt("totalActivities"));
+          
+                activityList.add(activity);
+            }
+        }
+        return activityList;
+    }
     
 }

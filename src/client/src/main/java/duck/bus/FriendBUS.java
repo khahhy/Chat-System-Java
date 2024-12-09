@@ -68,8 +68,7 @@ public class FriendBUS {
 
     public List<Map<String, Object>> getFriendDetails() {
         try {
-            List<UserDTO> users = userDAO.getAllUsers("", "", true);
-            System.out.println(users.size());
+            List<UserDTO> users = userDAO.getAllUsers("", "", null);
             List<Map<String, Object>> friend_detail = new ArrayList<>();
 
             for (UserDTO user : users) {

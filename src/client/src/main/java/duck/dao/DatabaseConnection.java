@@ -22,7 +22,6 @@ public class DatabaseConnection {
                 String password = props.getProperty("db.password");
 
                 connection = DriverManager.getConnection(url, user, password);
-                System.out.println("Ket noi thanh cong");
             } catch (IOException e) {
                 System.out.println("loi doc file cau hinh: " + e.getMessage());
                 throw new SQLException("khong the tai cau hinh");

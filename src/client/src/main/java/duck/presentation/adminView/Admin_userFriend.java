@@ -1,12 +1,13 @@
 package duck.presentation.adminView;
 
 import duck.bus.FriendBUS;
-import duck.bus.LoginHistoryBUS;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 
@@ -51,9 +52,18 @@ public class Admin_userFriend {
         friendsOfFriendsColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>((int)data.getValue().get("totalFrOfFr")));
         friendsOfFriendsColumn.setStyle("-fx-alignment: CENTER;");
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        TableColumn<Map<String, Object>, String> createdAtColumn = new TableColumn<>("Thời gian tạo");
-        createdAtColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(((LocalDateTime)data.getValue().get("createdAt")).format(formatter)));
+        TableColumn<Map<String, Object>, LocalDateTime> createdAtColumn = new TableColumn<>("Thời gian tạo");
+        createdAtColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>((LocalDateTime) data.getValue().get("createdAt")));
+
+        createdAtColumn.setCellFactory(_ -> new TableCell<>() {
+            private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+            protected void updateItem(LocalDateTime item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item != null) setText(item.format(formatter)); 
+                else setText("");  
+            }
+        });
         createdAtColumn.setStyle("-fx-alignment: CENTER;");
 
         userTable.getColumns().addAll(usernameColumn, fullNameColumn, directFriendsColumn, friendsOfFriendsColumn, createdAtColumn);
@@ -62,6 +72,7 @@ public class Admin_userFriend {
         HBox controls = createControls(userTable);
 
         VBox content = new VBox(10, controls, userTable);
+        VBox.setVgrow(userTable, Priority.ALWAYS);
         content.setStyle("-fx-padding: 10; -fx-background-color: #f9f9f9; -fx-border-color: #ddd; -fx-border-width: 1;");
         root.setCenter(content);
 
@@ -83,7 +94,7 @@ public class Admin_userFriend {
         Button applyFilterButton = new Button("Lọc");
         applyFilterButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #4CAF50; -fx-text-fill: white;");
     
-        applyFilterButton.setOnAction(event -> {
+        applyFilterButton.setOnAction(_ -> {
             String keyword = searchField.getText().toLowerCase().trim();
             String filterType = filterOptions.getValue();
             int friendCount = directFriendsFilter.getText().isEmpty() ? -1 : Integer.parseInt(directFriendsFilter.getText());

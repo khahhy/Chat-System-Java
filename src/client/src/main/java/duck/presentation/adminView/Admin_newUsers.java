@@ -1,6 +1,5 @@
 package duck.presentation.adminView;
 
-import duck.bus.SpamReportBUS;
 import duck.bus.UserBUS;
 
 import javafx.collections.FXCollections;
@@ -13,8 +12,11 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -25,13 +27,15 @@ public class Admin_newUsers {
     private List<Map<String, Object>> signupList;
     private ObservableList<Map<String, Object>> newSignup;
     private ObservableList<Map<String, Object>> filteredUsers;
-
+    VBox content;
    
     public Admin_newUsers() {
         userBUS = new UserBUS();
         signupList = userBUS.getNewUsers(null, null);
         newSignup = FXCollections.observableArrayList(signupList);
         filteredUsers = FXCollections.observableArrayList(newSignup);
+    
+        getContent();
     }
     
     public BorderPane getContent() {
@@ -49,9 +53,16 @@ public class Admin_newUsers {
         fullNameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("fullname")));
         fullNameColumn.setStyle("-fx-alignment: CENTER;");
 
+        TableColumn<Map<String, Object>, LocalDateTime> createdAtColumn = new TableColumn<>("Thời gian tạo");
+        createdAtColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>(((LocalDateTime) data.getValue().get("createdAt"))));
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        TableColumn<Map<String, Object>, String> createdAtColumn = new TableColumn<>("Thời gian tạo");
-        createdAtColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(((LocalDateTime)data.getValue().get("createdAt")).format(formatter)));
+        createdAtColumn.setCellFactory(_ -> new TableCell<>() {
+            protected void updateItem(LocalDateTime item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? "" : item.format(formatter)); 
+            }
+        });
+
         createdAtColumn.setStyle("-fx-alignment: CENTER;");
 
        
@@ -60,7 +71,8 @@ public class Admin_newUsers {
 
         HBox controls = createControls(userTable, root);
 
-        VBox content = new VBox(10, controls, userTable);
+        content = new VBox(10, controls, userTable);
+        VBox.setVgrow(userTable, Priority.ALWAYS);
         content.setStyle("-fx-padding: 10; -fx-background-color: #f9f9f9; -fx-border-color: #ddd; -fx-border-width: 1;");
         root.setCenter(content);
 
@@ -114,19 +126,29 @@ public class Admin_newUsers {
 
         Button chartButton = new Button("Biểu đồ trực quan");
         chartButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #2196F3; -fx-text-fill: white;");
-        chartButton.setOnAction(_ -> showChartPage(root));
+        chartButton.setOnAction(_ -> showChartPage(root, userTable));
 
         HBox filters = new HBox(10, searchField, startDatePicker, endDatePicker, applyFilterButton, chartButton);
         filters.setStyle("-fx-padding: 10; -fx-background-color: #f1f1f1; -fx-border-color: #ddd; -fx-border-width: 1;");
         return filters;
     }
 
-    private void showChartPage(BorderPane root) {
+    private void showChartPage(BorderPane root, TableView<Map<String, Object>> userTable) {
         VBox chartContent = new VBox(10);
         chartContent.setStyle("-fx-padding: 20;");
-    
-        ComboBox<Integer> yearSelector = new ComboBox<>(FXCollections.observableArrayList(2023, 2024));
-        yearSelector.setValue(2024); // default 2024
+
+        int currentYear = LocalDate.now().getYear();
+        int firstYear = userBUS.searchUsers("", "", null).stream()
+                         .map(user -> user.getCreatedAt().getYear())
+                         .min(Integer::compare)
+                         .orElse(currentYear);
+        ObservableList<Integer> years = FXCollections.observableArrayList();
+        for (int year = firstYear; year <= currentYear; year++) 
+            years.add(year);
+        
+
+        ComboBox<Integer> yearSelector = new ComboBox<>(years);
+        yearSelector.setValue(currentYear); 
     
         Button loadChartButton = new Button("Hiển thị biểu đồ");
         loadChartButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #4CAF50; -fx-text-fill: white;");
@@ -139,6 +161,8 @@ public class Admin_newUsers {
     
         NumberAxis yAxis = new NumberAxis();
         yAxis.setLabel("Số lượng đăng ký");
+        yAxis.setTickUnit(1); // don vi 1
+        yAxis.setForceZeroInRange(true);
     
         BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
         barChart.setTitle("Số lượng người đăng ký theo tháng");
@@ -155,17 +179,24 @@ public class Admin_newUsers {
     
         Button backButton = new Button("Quay lại");
         backButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #ff6666; -fx-text-fill: white;");
-        backButton.setOnAction(_ -> root.setCenter(getContent().getCenter()));
+        backButton.setOnAction(_ -> {
+            root.setCenter(content);
+            
+        });
     
         chartContent.getChildren().addAll(controls, barChart, backButton);
         root.setCenter(chartContent);
     }
-    // tạo sơ sơ dữ liệu để chạy ui
+    
     private XYChart.Series<String, Number> generateChartData(int year) {
         int[] monthlyData = new int[12];
     
-        for (int i = 0; i < 12; i++) 
-            monthlyData[i] = (int) (Math.random() * 100); 
+        userBUS.searchUsers("", "", null).stream()
+         .filter(user -> user.getCreatedAt().getYear() == year) 
+         .forEach(user -> {
+             int month = user.getCreatedAt().getMonthValue(); 
+             monthlyData[month - 1]++; 
+         });
         
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         for (int i = 0; i < 12; i++) 

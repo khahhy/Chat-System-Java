@@ -13,6 +13,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class Admin_manageGroups {
@@ -59,7 +60,8 @@ public class Admin_manageGroups {
                     Label nameLabel = new Label(group.getGroupName());
                     nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
-                    Label createdAtLabel = new Label("Ngày tạo: " + group.getCreatedAt());
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+                    Label createdAtLabel = new Label("Ngày tạo: " + group.getCreatedAt().format(formatter));
                     createdAtLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #555;");
 
                     Button detailButton = new Button("Chi tiết");

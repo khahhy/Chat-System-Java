@@ -1,7 +1,6 @@
 package duck.dao;
 
 import duck.dto.GroupDTO;
-import duck.dto.GroupMemberDTO;
 
 import java.sql.*;
 import java.util.ArrayList;

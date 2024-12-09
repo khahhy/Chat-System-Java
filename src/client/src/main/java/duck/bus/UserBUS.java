@@ -4,9 +4,11 @@ import duck.dao.UserDAO;
 import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
 
+
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+
 import java.util.List;
 import java.util.Map;
 
@@ -18,9 +20,9 @@ public class UserBUS {
     }
 
     // Tìm kiếm và lấy danh sách 
-    public List<UserDTO> searchUsers(String filter, String sortBy, Boolean isActive) {
+    public List<UserDTO> searchUsers(String filter, String sortBy, Boolean isOnline) {
         try {
-            return userDAO.getAllUsers(filter, sortBy, isActive);
+            return userDAO.getAllUsers(filter, sortBy, isOnline);
         } catch (SQLException e) {
             e.printStackTrace();
             return new ArrayList<>(); 
@@ -116,6 +118,16 @@ public class UserBUS {
             return null;
         }
     }
-    
+
+    public List<Map<String, Object>> getActivities(LocalDateTime startDate, LocalDateTime endDate) {
+        try {
+            return userDAO.getActivities(startDate, endDate);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
 
 }

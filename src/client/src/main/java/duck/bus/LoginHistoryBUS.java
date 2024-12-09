@@ -41,7 +41,7 @@ public class LoginHistoryBUS {
             for (LoginHistoryDTO item : histories) {
                 Map<String, Object> record = new HashMap<>();
                 UserDTO user = userDAO.getUserById(item.getUserId());
-
+                record.put("userid", item.getUserId());
                 record.put("loginTime", item.getLoginTime());
                 record.put("username", user.getUsername());
                 record.put("fullname", user.getFullName());

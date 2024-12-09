@@ -5,6 +5,7 @@ import duck.bus.LoginHistoryBUS;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.BorderPane;
@@ -34,11 +35,19 @@ public class Admin_LoginHistory {
         TableView<Map<String, Object>> loginTable = new TableView<>();
         loginTable.setItems(loginHistories);
 
-        TableColumn<Map<String, Object>, String> timestampColumn = new TableColumn<>("Thời gian");
-        timestampColumn.setCellValueFactory(data -> {
-            LocalDateTime loginTime = (LocalDateTime) data.getValue().get("loginTime");
-            return new javafx.beans.property.SimpleStringProperty(formatTimestamp(loginTime));
+        TableColumn<Map<String, Object>, LocalDateTime> timestampColumn = new TableColumn<>("Thời gian");
+        timestampColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>((LocalDateTime) data.getValue().get("loginTime")));
+
+        timestampColumn.setCellFactory(_ -> new TableCell<>() {
+            private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+            protected void updateItem(LocalDateTime item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item != null) setText(item.format(formatter)); 
+                else setText("");  
+            }
         });
+        timestampColumn.setStyle("-fx-alignment: CENTER;");
 
         TableColumn<Map<String, Object>, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
         usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("username")));
@@ -51,11 +60,6 @@ public class Admin_LoginHistory {
 
         root.setCenter(loginTable);
         return root;
-    }
-
-    private String formatTimestamp(LocalDateTime timestamp) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        return timestamp.format(formatter);
     }
 
     public void start(Stage stage) {

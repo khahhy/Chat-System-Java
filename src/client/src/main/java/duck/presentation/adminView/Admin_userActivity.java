@@ -1,5 +1,8 @@
 package duck.presentation.adminView;
 
+import duck.bus.LoginHistoryBUS;
+import duck.bus.UserBUS;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -10,82 +13,72 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Admin_userActivity {
-
-    public class UserActivity {
-        private String username;
-        private String fullName;
-        private LocalDateTime createdAt;
-        private int openedAppCount;
-        private int chattedPeopleCount;
-        private int chattedGroupsCount;
-
-        public UserActivity(String username, String fullName, LocalDateTime createdAt, int openedAppCount, int chattedPeopleCount, int chattedGroupsCount) {
-            this.username = username;
-            this.fullName = fullName;
-            this.createdAt = createdAt;
-            this.openedAppCount = openedAppCount;
-            this.chattedPeopleCount = chattedPeopleCount;
-            this.chattedGroupsCount = chattedGroupsCount;
-        }
-
-        public String getUsername() {return username;}
-        public String getFullName() {return fullName;}
-        public LocalDateTime getCreatedAt() {return createdAt;}
-        public String getFormattedCreatedAt() {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-            return createdAt.format(formatter);
-        }
-        public int getOpenedAppCount() {return openedAppCount;}
-        public int getChattedPeopleCount() {return chattedPeopleCount;}
-        public int getChattedGroupsCount() {return chattedGroupsCount;}
+    private UserBUS userBUS;
+    private List<Map<String, Object>> activityList;
+    //private ObservableList<Map<String, Object>> activities;
+    private ObservableList<Map<String, Object>> filteredActivities;
+    VBox content;
+    
+    public Admin_userActivity() {
+        userBUS = new UserBUS();
+        activityList = userBUS.getActivities(null, null);
+        //activities = FXCollections.observableArrayList(activityList);
+        filteredActivities = FXCollections.observableArrayList(activityList);
+    
+        getContent();
     }
-
-    private final ObservableList<UserActivity> activities = FXCollections.observableArrayList(
-        new UserActivity("user01", "Nguyễn Văn A", LocalDateTime.now().minusDays(1), 5, 20, 10),
-        new UserActivity("user02", "Trần Thị B", LocalDateTime.now().minusDays(2), 3, 15, 7),
-        new UserActivity("user03", "Phạm Minh C", LocalDateTime.now().minusDays(3), 7, 25, 12),
-        new UserActivity("user04", "Đỗ Quốc D", LocalDateTime.now().minusDays(4), 10, 30, 15),
-        new UserActivity("user05", "Nguyễn Văn E", LocalDateTime.now().minusDays(5), 2, 8, 3)
-    );
-
-    private final ObservableList<UserActivity> filteredActivities = FXCollections.observableArrayList(activities);
-
+    
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-padding: 20;");
 
-        TableView<UserActivity> activityTable = new TableView<>();
+        TableView<Map<String, Object>> activityTable = new TableView<>();
         activityTable.setItems(filteredActivities);
 
-        TableColumn<UserActivity, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
-        usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getUsername()));
+        TableColumn<Map<String, Object>, String> usernameColumn = new TableColumn<>("Tên đăng nhập");
+        usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("username")));
         usernameColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<UserActivity, String> fullNameColumn = new TableColumn<>("Họ tên");
-        fullNameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getFullName()));
+        TableColumn<Map<String, Object>, String> fullNameColumn = new TableColumn<>("Họ tên");
+        fullNameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("fullname")));
         fullNameColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<UserActivity, Integer> openedAppColumn = new TableColumn<>("Mở ứng dụng");
-        openedAppColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>(data.getValue().getOpenedAppCount()));
+        TableColumn<Map<String, Object>, Integer> openedAppColumn = new TableColumn<>("Mở ứng dụng");
+        openedAppColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>((int)data.getValue().get("logins")));
         openedAppColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<UserActivity, Integer> chattedPeopleColumn = new TableColumn<>("Chat với người");
-        chattedPeopleColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>(data.getValue().getChattedPeopleCount()));
+        TableColumn<Map<String, Object>, Integer> chattedPeopleColumn = new TableColumn<>("Chat cá nhân");
+        chattedPeopleColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>((int)data.getValue().get("chatUsers")));
         chattedPeopleColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<UserActivity, Integer> chattedGroupsColumn = new TableColumn<>("Chat nhóm");
-        chattedGroupsColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>(data.getValue().getChattedGroupsCount()));
+        TableColumn<Map<String, Object>, Integer> chattedGroupsColumn = new TableColumn<>("Chat nhóm");
+        chattedGroupsColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>((int)data.getValue().get("chatGroups")));
         chattedGroupsColumn.setStyle("-fx-alignment: CENTER;");
 
-        TableColumn<UserActivity, String> createdAtColumn = new TableColumn<>("Thời gian tạo");
-        createdAtColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getFormattedCreatedAt()));
+        TableColumn<Map<String, Object>, LocalDateTime> createdAtColumn = new TableColumn<>("Thời gian tạo");
+        createdAtColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>(((LocalDateTime) data.getValue().get("createdAt"))));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        createdAtColumn.setCellFactory(_ -> new TableCell<>() {
+            protected void updateItem(LocalDateTime item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? "" : item.format(formatter)); 
+            }
+        });
+
         createdAtColumn.setStyle("-fx-alignment: CENTER;");
 
         activityTable.getColumns().addAll(usernameColumn, fullNameColumn, openedAppColumn, chattedPeopleColumn, chattedGroupsColumn, createdAtColumn);
@@ -93,91 +86,102 @@ public class Admin_userActivity {
 
         HBox controls = createControls(activityTable, root);
 
-        VBox content = new VBox(10, controls, activityTable);
+        content = new VBox(10, controls, activityTable);
+        VBox.setVgrow(activityTable, Priority.ALWAYS);
         content.setStyle("-fx-padding: 10; -fx-background-color: #f9f9f9; -fx-border-color: #ddd; -fx-border-width: 1;");
         root.setCenter(content);
 
         return root;
     }
 
-    private HBox createControls(TableView<UserActivity> activityTable, BorderPane root) {
+    private HBox createControls(TableView<Map<String, Object>> activityTable, BorderPane root) {
         TextField searchField = new TextField();
-        searchField.setPromptText("Lọc theo tên");
-        searchField.setPrefWidth(150);
+        searchField.setPromptText("Tìm kiếm");
+        searchField.setPrefWidth(100);
+
+        DatePicker startDatePicker = new DatePicker();
+        startDatePicker.setPromptText("Từ ...");
+        startDatePicker.setPrefWidth(150);
+
+        DatePicker endDatePicker = new DatePicker();
+        endDatePicker.setPromptText("Đến ...");
+        endDatePicker.setPrefWidth(150);
 
         TextField activityFilter = new TextField();
-        activityFilter.setPromptText("Nhập số lượng hoạt động...");
-        activityFilter.setPrefWidth(100);
+        activityFilter.setPromptText("Số lượng hoạt động");
+        activityFilter.setPrefWidth(50);
 
         ComboBox<String> filterOptions = new ComboBox<>(FXCollections.observableArrayList("Bằng", "Nhỏ hơn", "Lớn hơn"));
         filterOptions.setValue("Bằng");
 
-        ComboBox<String> sortOptions = new ComboBox<>(FXCollections.observableArrayList(
-            "Tên A-Z", "Tên Z-A", "Thời gian mới nhất", "Thời gian cũ nhất"
-        ));
-        sortOptions.setValue("Tên A-Z");
-
         Button applyFilterButton = new Button("Lọc");
         applyFilterButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #4CAF50; -fx-text-fill: white;");
-
+        
         applyFilterButton.setOnAction(_ -> {
             String keyword = searchField.getText().toLowerCase();
+            LocalDateTime startDate = startDatePicker.getValue() != null ? startDatePicker.getValue().atStartOfDay() : null;
+            LocalDateTime endDate = endDatePicker.getValue() != null ? endDatePicker.getValue().atTime(23, 59, 59) : null;
             String filterType = filterOptions.getValue();
             int activityCount = activityFilter.getText().isEmpty() ? -1 : Integer.parseInt(activityFilter.getText());
 
-            filteredActivities.setAll(activities.filtered(activity -> {
-                boolean matchesName = activity.getFullName().toLowerCase().contains(keyword);
-                boolean matchesActivity = true;
-
-                if (activityCount != -1) {
+            List<Map<String, Object>> filteredList = userBUS.getActivities(startDate, endDate).stream()
+                .filter(user -> {
+                    boolean matchesKeyword = true;
+                    boolean matchesTotal = true;
+        
+                    if (!keyword.isEmpty()) {
+                        String fullName = ((String) user.get("fullname")).toLowerCase();
+                        matchesKeyword = fullName.contains(keyword);
+                    }
+        
+                    if (activityCount != -1) {
                     switch (filterType) {
                         case "Bằng":
-                            matchesActivity = activity.getOpenedAppCount() == activityCount;
+                            matchesTotal = ((int) user.get("totalActivities")) == activityCount;
                             break;
                         case "Nhỏ hơn":
-                            matchesActivity = activity.getOpenedAppCount() < activityCount;
+                            matchesTotal = ((int) user.get("totalActivities")) < activityCount;
                             break;
                         case "Lớn hơn":
-                            matchesActivity = activity.getOpenedAppCount() > activityCount;
+                            matchesTotal = ((int) user.get("totalActivities")) > activityCount;
                             break;
                     }
                 }
-                return matchesName && matchesActivity;
-            }));
+        
+                    return matchesKeyword && matchesTotal;
+                })
+                .toList();
+        
+            filteredActivities.setAll(filteredList); 
         });
 
-        sortOptions.setOnAction(_ -> {
-            String sortChoice = sortOptions.getValue();
-            filteredActivities.sort((a1, a2) -> {
-                switch (sortChoice) {
-                    case "Tên A-Z":
-                        return a1.getFullName().compareToIgnoreCase(a2.getFullName());
-                    case "Tên Z-A":
-                        return a2.getFullName().compareToIgnoreCase(a1.getFullName());
-                    case "Thời gian mới nhất":
-                        return a2.getCreatedAt().compareTo(a1.getCreatedAt());
-                    case "Thời gian cũ nhất":
-                        return a1.getCreatedAt().compareTo(a2.getCreatedAt());
-                }
-                return 0;
-            });
-        });
 
         Button chartButton = new Button("Biểu đồ");
         chartButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #2196F3; -fx-text-fill: white;");
         chartButton.setOnAction(_ -> showChartPage(root));
 
-        HBox filters = new HBox(10, searchField, activityFilter, filterOptions, applyFilterButton, sortOptions, chartButton);
+        HBox filters = new HBox(10, searchField, activityFilter, filterOptions, startDatePicker, endDatePicker, applyFilterButton, chartButton);
         filters.setStyle("-fx-padding: 10; -fx-background-color: #f1f1f1; -fx-border-color: #ddd; -fx-border-width: 1;");
         return filters;
     }
 
     private void showChartPage(BorderPane root) {
+        LoginHistoryBUS lhBUS = new LoginHistoryBUS();
         VBox chartContent = new VBox(10);
         chartContent.setStyle("-fx-padding: 20;");
-    
-        ComboBox<Integer> yearSelector = new ComboBox<>(FXCollections.observableArrayList(2023, 2024));
-        yearSelector.setValue(2024); // default 2024
+        
+        int currentYear = LocalDate.now().getYear();
+        int firstYear = lhBUS.getAllLoginHistory().stream()
+                         .map(login -> ((LocalDateTime)login.get("loginTime")).getYear())
+                         .min(Integer::compare)
+                         .orElse(currentYear);
+        ObservableList<Integer> years = FXCollections.observableArrayList();
+            for (int year = firstYear; year <= currentYear; year++) 
+                years.add(year);
+            
+
+        ComboBox<Integer> yearSelector = new ComboBox<>(years);
+        yearSelector.setValue(currentYear); 
     
         Button loadChartButton = new Button("Hiển thị biểu đồ");
         loadChartButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #4CAF50; -fx-text-fill: white;");
@@ -190,6 +194,8 @@ public class Admin_userActivity {
     
         NumberAxis yAxis = new NumberAxis();
         yAxis.setLabel("Số lượng người mở ứng dụng");
+        yAxis.setTickUnit(1); // don vi 1
+        yAxis.setForceZeroInRange(true);
     
         BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
         barChart.setTitle("Số lượng người mở ứng dụng theo tháng");
@@ -205,21 +211,35 @@ public class Admin_userActivity {
     
         Button backButton = new Button("Quay lại");
         backButton.setStyle("-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #ff6666; -fx-text-fill: white;");
-        backButton.setOnAction(_ -> root.setCenter(getContent().getCenter()));
+        backButton.setOnAction(_ -> root.setCenter(content));
     
         chartContent.getChildren().addAll(controls, barChart, backButton);
         root.setCenter(chartContent);
     }
     
     private XYChart.Series<String, Number> generateChartData(int year) {
-        int[] monthlyData = new int[12];
-        for (int i = 0; i < 12; i++) 
-            monthlyData[i] = (int) (Math.random() * 100); 
+        Map<Integer, Set<Integer>> monthlyUserData = new HashMap<>();
+        for (int i = 1; i <= 12; i++) {
+            monthlyUserData.put(i, new HashSet<>()); 
+        }
+    
+        LoginHistoryBUS lhBUS = new LoginHistoryBUS();
+        lhBUS.getAllLoginHistory().stream()
+            .filter(login -> ((LocalDateTime) login.get("loginTime")).getYear() == year)
+            .forEach(login -> {
+                int month = ((LocalDateTime) login.get("loginTime")).getMonthValue();
+                int userId = (int) login.get("userid"); 
+                monthlyUserData.get(month).add(userId); 
+            });
+    
         XYChart.Series<String, Number> series = new XYChart.Series<>();
-        for (int i = 0; i < 12; i++) 
-            series.getData().add(new XYChart.Data<>(String.valueOf(i + 1), monthlyData[i]));
+        for (int i = 1; i <= 12; i++) {
+            int uniqueUsers = monthlyUserData.get(i).size(); 
+            series.getData().add(new XYChart.Data<>(String.valueOf(i), uniqueUsers));
+        }
         return series;
     }
+    
 
     public void start(Stage stage) {
         Scene scene = new Scene(getContent(), 900, 600);

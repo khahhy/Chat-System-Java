@@ -89,4 +89,5 @@ public class LoginHistoryDAO {
             return stmt.executeUpdate() > 0;
         }
     }
+
 }

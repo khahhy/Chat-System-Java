@@ -8,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -40,9 +41,18 @@ public class Admin_SpamReports {
         usernameColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get("username")));
         usernameColumn.setStyle("-fx-alignment: CENTER;");
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        TableColumn<Map<String, Object>, String> timestampColumn = new TableColumn<>("Thời gian");
-        timestampColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(((LocalDateTime)data.getValue().get("reportTime")).format(formatter)));
+        TableColumn<Map<String, Object>, LocalDateTime> timestampColumn = new TableColumn<>("Thời gian");
+        timestampColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>((LocalDateTime) data.getValue().get("reportTime")));
+
+        timestampColumn.setCellFactory(_ -> new TableCell<>() {
+            private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+            protected void updateItem(LocalDateTime item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item != null) setText(item.format(formatter)); 
+                else setText("");  
+            }
+        });
         timestampColumn.setStyle("-fx-alignment: CENTER;");
 
         TableColumn<Map<String, Object>, Void> lockColumn = new TableColumn<>("Tùy chọn");
@@ -84,6 +94,7 @@ public class Admin_SpamReports {
         HBox controls = createControls(reportTable);
 
         VBox content = new VBox(10, controls, reportTable);
+        VBox.setVgrow(reportTable, Priority.ALWAYS);
         content.setStyle("-fx-padding: 10; -fx-background-color: #f9f9f9; -fx-border-color: #ddd; -fx-border-width: 1;");
         root.setCenter(content);
 
