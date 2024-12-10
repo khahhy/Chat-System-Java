@@ -1,10 +1,13 @@
 package duck.bus;
 
+import duck.dao.DatabaseConnection;
 import duck.dao.UserDAO;
 import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
 
-
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -128,6 +131,65 @@ public class UserBUS {
         }
     }
 
+    public static List<UserDTO> getAllUsers() {
+        List<UserDTO> users = new ArrayList<>();
+        String query = "SELECT * FROM users";
 
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query);
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+
+            while (resultSet.next()) {
+                UserDTO user = new UserDTO(
+                    resultSet.getInt("user_id"),
+                    resultSet.getString("username"),
+                    resultSet.getString("full_name"),
+                    resultSet.getString("address"),
+                    resultSet.getTimestamp("date_of_birth").toLocalDateTime(),
+                    resultSet.getString("gender").charAt(0),
+                    resultSet.getString("email"),
+                    resultSet.getString("password"),
+                    resultSet.getBoolean("status"),
+                    resultSet.getBoolean("is_online"),
+                    resultSet.getTimestamp("created_at").toLocalDateTime(),
+                    resultSet.getBoolean("is_admin")
+                );
+                users.add(user);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return users;
+    }
+
+    public static List<FriendDTO> getFriendsByUserId(int userId) {
+        List<FriendDTO> friends = new ArrayList<>();
+        String query = "SELECT * FROM friends WHERE user_id = ?";
+    
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+    
+            preparedStatement.setInt(1, userId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    FriendDTO friend = new FriendDTO(
+                        resultSet.getInt("user_id"),
+                        resultSet.getInt("friend_id"),
+                        resultSet.getBoolean("is_blocked"),
+                        resultSet.getTimestamp("created_at").toLocalDateTime()
+                    );
+                    friends.add(friend);
+                }
+            }
+    
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    
+        return friends;
+    }
+    
 
 }
