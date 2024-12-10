@@ -1,6 +1,7 @@
 package duck.bus;
 
 import duck.dao.FriendRequestDAO;
+import duck.dto.FriendDTO;
 import duck.dto.FriendRequestDTO;
 
 import java.sql.SQLException;
@@ -95,24 +96,36 @@ public class FriendRequestBUS {
     }
 
     // Chấp nhận yêu cầu kết bạn
-    public boolean acceptFriendRequest(int requestId) {
+    // Cập nhật trạng thái yêu cầu kết bạn và thêm vào bảng friends
+    // Cập nhật trạng thái yêu cầu kết bạn và thêm vào bảng friends
+    public boolean acceptFriendRequest(int requestId, int senderId, int receiverId) {
         try {
-            // Cập nhật trạng thái là "accepted"
-            return friendRequestDAO.updateFriendRequestStatus(requestId, "accepted");
+            // Cập nhật trạng thái yêu cầu là "accepted"
+            boolean statusUpdated = friendRequestDAO.updateFriendRequestStatus(requestId, "accepted");
+            
+            if (statusUpdated) {
+                // Sau khi yêu cầu kết bạn được chấp nhận, thêm vào bảng friends
+                FriendBUS friendBUS = new FriendBUS();
+                FriendDTO friend1 = new FriendDTO(senderId, receiverId); // Người gửi kết bạn
+                FriendDTO friend2 = new FriendDTO(receiverId, senderId); // Người nhận kết bạn
+                return friendBUS.addFriend(friend1) && friendBUS.addFriend(friend2);
+            }
+            return false;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
-
-    // Từ chối yêu cầu kết bạn
+    
     public boolean rejectFriendRequest(int requestId) {
         try {
-            // Cập nhật trạng thái là "rejected"
+            // Cập nhật trạng thái yêu cầu là "rejected"
             return friendRequestDAO.updateFriendRequestStatus(requestId, "rejected");
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
+    
+    
 }

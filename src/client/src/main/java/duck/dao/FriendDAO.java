@@ -53,15 +53,21 @@ public class FriendDAO {
         }
     }
 
-    public boolean deleteFriend(int userId, int friendId) throws SQLException {
-        String query = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
+    public boolean deleteFriend(int userId, int friendId) {
+        String sql = "DELETE FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, userId);
             stmt.setInt(2, friendId);
+            stmt.setInt(3, friendId);
+            stmt.setInt(4, userId);
             return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
     }
+    
 
     
     public boolean isFriend(int userId, int friendId) throws SQLException {
@@ -112,5 +118,33 @@ public class FriendDAO {
         return 0; 
     }
     
+    public boolean blockFriend(int userId, int friendId) {
+        String deleteSql = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
+        String updateSql = "UPDATE friends SET is_blocked = true WHERE user_id = ? AND friend_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false); // Bắt đầu transaction
+    
+            // Xóa dòng user_id=friendId và friend_id=userId
+            try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                deleteStmt.setInt(1, friendId);
+                deleteStmt.setInt(2, userId);
+                deleteStmt.executeUpdate();
+            }
+    
+            // Cập nhật dòng user_id=userId và friend_id=friendId
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                updateStmt.setInt(1, userId);
+                updateStmt.setInt(2, friendId);
+                updateStmt.executeUpdate();
+            }
+    
+            conn.commit(); // Hoàn tất transaction
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
     
 }

@@ -15,7 +15,13 @@ public class FriendDTO {
         this.createdAt = createdAt;
     }
 
-    
+    public FriendDTO(int userId, int friendId) {
+        this.userId = userId;
+        this.friendId = friendId;
+        this.isBlocked = false;  // Mặc định không bị block
+        this.createdAt = LocalDateTime.now();  // Mặc định tạo lúc này
+    }
+
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
 

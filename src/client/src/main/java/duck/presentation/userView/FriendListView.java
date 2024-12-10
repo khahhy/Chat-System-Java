@@ -67,22 +67,25 @@ public class FriendListView {
     content.setStyle("-fx-padding: 10;");
 
     // Lấy danh sách bạn bè từ cơ sở dữ liệu
-    ObservableList<Friend> friends = FXCollections.observableArrayList();
+        ObservableList<Friend> friends = FXCollections.observableArrayList();
     try {
         UserBUS userBUS = new UserBUS(); // Khởi tạo trực tiếp đối tượng UserBUS
-    
+
+        // Lấy danh sách bạn bè không bị block
         List<FriendDTO> friendDTOs = userBUS.getFriendList(user.getUserId());
         for (FriendDTO friendDTO : friendDTOs) {
             UserDTO friendUser = userBUS.getUserById(friendDTO.getFriendId());
             
-            // Sử dụng các phương thức từ UserDTO để lấy thông tin bạn bè
-            friends.add(new Friend(
-                friendUser.getUserId(),
-                friendUser.getFullName(), // Tên bạn bè
-                friendUser.isOnline(), // Trạng thái online
-                friendUser.getDateOfBirth(), // Ngày sinh
-                friendUser.getGender() // Giới tính
-            ));
+            // Thêm bạn bè vào danh sách nếu không bị block
+            if (!friendDTO.isBlocked()) { 
+                friends.add(new Friend(
+                    friendUser.getUserId(),
+                    friendUser.getFullName(), // Tên bạn bè
+                    friendUser.isOnline(), // Trạng thái online
+                    friendUser.getDateOfBirth(), // Ngày sinh
+                    friendUser.getGender() // Giới tính
+                ));
+            }
         }
         
     } catch (Exception e) {
@@ -152,16 +155,44 @@ public class FriendListView {
 
                 viewInfo.setOnAction(_ -> showFriendInfoPopup(item));
                 removeFriend.setOnAction(_ -> {
-                    friends.remove(item);
-                    displayedFriends.remove(item);
-                    // Gọi thêm API xóa bạn nếu cần thiết
+                    boolean confirmDelete = confirmDeleteDialog(item.getName());
+                    if (confirmDelete) {
+                        try {
+                            UserBUS userBUS = new UserBUS(); // Khởi tạo đối tượng UserBUS
+                            boolean success = userBUS.removeFriend(user.getUserId(), item.getFriendId()); // Gọi phương thức xóa bạn
+                            if (success) {
+                                friends.remove(item); // Xóa bạn khỏi danh sách
+                                displayedFriends.remove(item); // Cập nhật danh sách hiển thị
+                            } else {
+                                showErrorDialog("Không thể xóa bạn. Vui lòng thử lại sau.");
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            showErrorDialog("Đã xảy ra lỗi khi xóa bạn. Vui lòng thử lại sau.");
+                        }
+                    }
                 });
+                
 
                 blockFriend.setOnAction(_ -> {
-                    friends.remove(item);
-                    displayedFriends.remove(item);
-                    // Gọi thêm API block bạn nếu cần thiết
+                    boolean confirmBlock = confirmBlockDialog(item.getName());
+                    if (confirmBlock) {
+                        try {
+                            UserBUS userBUS = new UserBUS();
+                            boolean success = userBUS.blockFriend(user.getUserId(), item.getFriendId()); // Gọi phương thức block
+                            if (success) {
+                                friends.remove(item); // Xóa khỏi danh sách hiển thị
+                                displayedFriends.remove(item);
+                            } else {
+                                showErrorDialog("Không thể block bạn. Vui lòng thử lại sau.");
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            showErrorDialog("Đã xảy ra lỗi khi block bạn. Vui lòng thử lại sau.");
+                        }
+                    }
                 });
+                
 
                 createGroup.setOnAction(_ -> {
                     CreateGroupPopup createGroupPopup = new CreateGroupPopup();
@@ -230,6 +261,40 @@ public class FriendListView {
         popupStage.showAndWait();
     }
 
-
-
-}
+    private boolean confirmDeleteDialog(String friendName) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Xác nhận xóa bạn");
+        alert.setHeaderText("Bạn có chắc chắn muốn xóa " + friendName + " khỏi danh sách bạn bè?");
+        alert.setContentText("Hành động này không thể hoàn tác.");
+    
+        ButtonType confirmButton = new ButtonType("Xóa", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButton = new ButtonType("Hủy", ButtonBar.ButtonData.CANCEL_CLOSE);
+    
+        alert.getButtonTypes().setAll(confirmButton, cancelButton);
+    
+        return alert.showAndWait().filter(button -> button == confirmButton).isPresent();
+    }
+    
+    private void showErrorDialog(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Lỗi");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    private boolean confirmBlockDialog(String friendName) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Xác nhận block");
+        alert.setHeaderText("Bạn có chắc chắn muốn block " + friendName + "?");
+        alert.setContentText("Người này sẽ không còn nhìn thấy bạn trong danh sách bạn bè.");
+    
+        ButtonType blockButton = new ButtonType("Block", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButton = new ButtonType("Hủy", ButtonBar.ButtonData.CANCEL_CLOSE);
+    
+        alert.getButtonTypes().setAll(blockButton, cancelButton);
+    
+        return alert.showAndWait().filter(button -> button == blockButton).isPresent();
+    }
+    
+}       

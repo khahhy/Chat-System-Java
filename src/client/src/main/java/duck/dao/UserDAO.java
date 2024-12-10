@@ -304,7 +304,7 @@ public class UserDAO {
 
     public List<FriendDTO> getFriendsByUserId(int userId) throws SQLException {
         List<FriendDTO> friends = new ArrayList<>();
-        String query = "SELECT * FROM friends WHERE user_id = ?";
+        String query = "SELECT * FROM friends WHERE user_id = ? AND is_blocked = false";
     
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {

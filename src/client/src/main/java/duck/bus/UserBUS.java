@@ -1,6 +1,7 @@
 package duck.bus;
 
 import duck.dao.DatabaseConnection;
+import duck.dao.FriendDAO;
 import duck.dao.UserDAO;
 import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
@@ -191,5 +192,81 @@ public class UserBUS {
         return friends;
     }
     
+    public boolean removeFriend(int userId, int friendId) {
+        try {
+            // Gọi DAO hoặc logic để xóa bạn trong cơ sở dữ liệu
+            FriendDAO friendDAO = new FriendDAO();
+            return friendDAO.deleteFriend(userId, friendId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
+    public boolean blockFriend(int userId, int friendId) {
+        try {
+            FriendDAO friendDAO = new FriendDAO();
+            return friendDAO.blockFriend(userId, friendId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    public boolean unblockFriend(int userId, int friendId) {
+        String query = "UPDATE friends SET is_blocked = false WHERE user_id = ? AND friend_id = ?";
+        
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+    
+            preparedStatement.setInt(1, userId);
+            preparedStatement.setInt(2, friendId);
+    
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0; // Trả về true nếu cập nhật thành công
+    
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    
+    public static List<UserDTO> getBlockedUsersByUserId(int userId) {
+        List<UserDTO> blockedUsers = new ArrayList<>();
+        String query = "SELECT u.* FROM users u "
+                     + "JOIN friends f ON u.user_id = f.friend_id "
+                     + "WHERE f.user_id = ? AND f.is_blocked = true";
+    
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+    
+            preparedStatement.setInt(1, userId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    UserDTO user = new UserDTO(
+                        resultSet.getInt("user_id"),
+                        resultSet.getString("username"),
+                        resultSet.getString("full_name"),
+                        resultSet.getString("address"),
+                        resultSet.getTimestamp("date_of_birth").toLocalDateTime(),
+                        resultSet.getString("gender").charAt(0),
+                        resultSet.getString("email"),
+                        resultSet.getString("password"),
+                        resultSet.getBoolean("status"),
+                        resultSet.getBoolean("is_online"),
+                        resultSet.getTimestamp("created_at").toLocalDateTime(),
+                        resultSet.getBoolean("is_admin")
+                    );
+                    blockedUsers.add(user);
+                }
+            }
+    
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    
+        return blockedUsers;
+    }
+    
 }
