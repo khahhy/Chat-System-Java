@@ -70,12 +70,19 @@ public class LoginHistoryDAO {
     }
 
     
-    public boolean updateLogoutTime(int historyId, LocalDateTime logoutTime) throws SQLException {
-        String query = "UPDATE LoginHistory SET logout_time = ? WHERE history_id = ?";
+    public boolean updateLogoutTime(int userId, LocalDateTime logoutTime) throws SQLException {
+        String query = "UPDATE LoginHistory " +
+                   "SET logout_time = ? " +
+                   "WHERE history_id = (" +
+                   "    SELECT history_id " +
+                   "    FROM LoginHistory " +
+                   "    WHERE user_id = ? " +
+                   "    ORDER BY login_time DESC LIMIT 1" +
+                   ")";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setTimestamp(1, Timestamp.valueOf(logoutTime));
-            stmt.setInt(2, historyId);
+                stmt.setTimestamp(1, Timestamp.valueOf(logoutTime));
+                stmt.setInt(2, userId);
             return stmt.executeUpdate() > 0;
         }
     }
@@ -90,4 +97,5 @@ public class LoginHistoryDAO {
         }
     }
 
+    
 }

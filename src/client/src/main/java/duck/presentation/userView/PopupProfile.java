@@ -1,5 +1,5 @@
 package duck.presentation.userView;
-import duck.bus.UserBUS;
+
 import duck.dto.UserDTO;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -41,18 +41,22 @@ public class PopupProfile {
         titleLabel.setFont(new Font("Arial", 16));
         titleLabel.setStyle("-fx-font-weight: bold;");
 
+        Label usernameLabel = new Label("Tên đăng nhập: " + user.getUsername());
+        Label fullnameLabel = new Label("Tên: " + user.getFullName());
+        Label addressLabel = new Label("Địa chỉ: " + user.getAddress());
         Label genderLabel = new Label("Giới tính: " + 
-    (user.getGender() == 'M' ? "Nam" : user.getGender() == 'F' ? "Nữ" : ""));
+            (user.getGender() == 'M' ? "Nam" : user.getGender() == 'F' ? "Nữ" : ""));
 
         Label dobLabel = new Label("Ngày sinh: " + 
-    (user.getDateOfBirth() != null ? user.getDateOfBirth().toLocalDate() : "01/01/2000"));
+            (user.getDateOfBirth() != null ? user.getDateOfBirth().toLocalDate() : "01/01/2000"));
 
-        Label addressLabel = new Label("Địa chỉ: " + user.getAddress());
-        // Nút edit
+        Label emailLabel = new Label("Email: " + user.getEmail());
+
         Button editButton = new Button("Chỉnh sửa thông tin");
         editButton.setStyle("-fx-background-color: #6c63ff; -fx-text-fill: white; -fx-padding: 5 10; -fx-border-radius: 5;");
         editButton.setOnAction(_ -> {
-            new PopupEditProfile(mainRoot, genderLabel, dobLabel, addressLabel, user).showEditPopup();
+            new PopupEditProfile(mainRoot, user).showEditPopup();
+            refreshView(usernameLabel, fullnameLabel, addressLabel, genderLabel, dobLabel, emailLabel);
         });
 
         // Nút thoát
@@ -64,7 +68,7 @@ public class PopupProfile {
         });
 
         
-        content.getChildren().addAll(titleLabel, genderLabel, dobLabel, addressLabel, editButton, closeButton);
+        content.getChildren().addAll(titleLabel, usernameLabel, fullnameLabel, addressLabel, genderLabel, dobLabel, emailLabel, editButton, closeButton);
 
         Scene popupScene = new Scene(content);
         popupScene.setFill(Color.TRANSPARENT);
@@ -73,4 +77,16 @@ public class PopupProfile {
         popupStage.setOnHidden(_ -> mainRoot.setEffect(null)); 
         popupStage.showAndWait(); // Đợi đến khi nó đóng
     }
+
+    public void refreshView(Label usernameLabel, Label fullnameLabel, Label addressLabel, Label genderLabel, Label dobLabel, Label emailLabel) {
+        usernameLabel.setText("Username: " + user.getUsername());
+        fullnameLabel.setText("Fullname: " + user.getFullName());
+        addressLabel.setText("Địa chỉ: " + user.getAddress());
+        genderLabel.setText("Giới tính: " + 
+            (user.getGender() == 'M' ? "Nam" : user.getGender() == 'F' ? "Nữ" : ""));
+        dobLabel.setText("Ngày sinh: " + 
+            (user.getDateOfBirth() != null ? user.getDateOfBirth().toLocalDate() : "01/01/2000"));
+        emailLabel.setText("Email: " + user.getEmail());
+    }
+    
 }

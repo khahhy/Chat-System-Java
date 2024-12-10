@@ -2,7 +2,8 @@ package duck.presentation.adminView;
 import duck.dto.UserDTO;
 import duck.presentation.ClientApp;
 import duck.presentation.userView.PopupEditPw;
-
+import duck.bus.LoginHistoryBUS;
+import duck.bus.UserBUS;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -10,6 +11,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,10 +19,14 @@ public class AdminPage {
     private final ClientApp app; 
     private final UserDTO user;
     private final List<Button> sidebarButtons = new ArrayList<>();
+    private final LoginHistoryBUS lh;
+    private final UserBUS userBUS;
 
     public AdminPage(ClientApp app, UserDTO user) {
         this.app = app;
         this.user = user;
+        this.lh = new LoginHistoryBUS();
+        this.userBUS = new UserBUS();
     }
 
     public BorderPane getContent() {
@@ -78,6 +84,9 @@ public class AdminPage {
            
         MenuItem logoutItem = new MenuItem("Logout");
         logoutItem.setOnAction(_ -> {
+            lh.updateLogoutTime(user.getUserId(), LocalDateTime.now());
+            user.setOnline(false);
+            userBUS.updateUser(user);
             app.showLoginPage();   // app này là bên client app truyền vào ban đầu
         });
     

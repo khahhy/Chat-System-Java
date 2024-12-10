@@ -2,8 +2,11 @@ package duck.presentation.userView;
 
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
+import javafx.collections.FXCollections;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.GaussianBlur;
@@ -17,16 +20,12 @@ import javafx.stage.StageStyle;
 
 public class PopupEditProfile {
     private final BorderPane mainRoot;
-    private final Label genderLabel;
-    private final Label dobLabel;
-    private final Label addressLabel;
+    private final UserBUS userBUS;
     private final UserDTO user;
 
-    public PopupEditProfile(BorderPane mainRoot, Label genderLabel, Label dobLabel, Label addressLabel, UserDTO user) {
+    public PopupEditProfile(BorderPane mainRoot, UserDTO user) {
         this.mainRoot = mainRoot;
-        this.genderLabel = genderLabel;
-        this.dobLabel = dobLabel;
-        this.addressLabel = addressLabel;
+        this.userBUS = new UserBUS();
         this.user = user;
     }
 
@@ -48,15 +47,20 @@ public class PopupEditProfile {
         titleLabel.setFont(new Font("Arial", 16));
         titleLabel.setStyle("-fx-font-weight: bold;");
 
-        // Khởi tạo các trường nhập với dữ liệu từ user
-        String currentGender = user.getGender() == 'M' ? "Nam" : user.getGender() == 'F' ? "Nữ" : "";
-        TextField genderField = new TextField(currentGender);
 
-        String currentDob = user.getDateOfBirth() != null ? user.getDateOfBirth().toLocalDate().toString() : "2000-01-01";
-        TextField dobField = new TextField(currentDob);
+        TextField usernameField = new TextField(user.getUsername());
+        TextField fullNameField = new TextField(user.getFullName() != null ? user.getFullName() : "");
+        TextField addressField = new TextField(user.getAddress() != null ? user.getAddress() : "");
 
-        String currentAddress = user.getAddress() != null ? user.getAddress() : "Chưa có địa chỉ";
-        TextField addressField = new TextField(currentAddress);
+        DatePicker dobPicker = new DatePicker(
+            user.getDateOfBirth() != null ? user.getDateOfBirth().toLocalDate() : null
+        );
+        
+        ComboBox<String> genderBox = new ComboBox<>(FXCollections.observableArrayList("Nam", "Nữ"));
+        String gender = user.getGender() == 'M' ? "Nam" : (user.getGender() == 'F' ? "Nữ" : null);
+        genderBox.setValue(gender);
+
+        TextField emailField = new TextField(user.getEmail());
 
         // Nút hủy
         Button cancelButton = new Button("Hủy");
@@ -66,37 +70,34 @@ public class PopupEditProfile {
         // Nút lưu
         Button saveButton = new Button("Lưu");
         saveButton.setStyle("-fx-background-color: #6c63ff; -fx-text-fill: white; -fx-padding: 5 10; -fx-border-radius: 5;");
-        saveButton.setOnAction(e -> {
-            // Cập nhật lại user
-            user.setGender(genderField.getText().equalsIgnoreCase("Nam") ? 'M' : 
-                           genderField.getText().equalsIgnoreCase("Nữ") ? 'F' : 'U');
-            user.setDateOfBirth(java.time.LocalDate.parse(dobField.getText()).atStartOfDay());
-            user.setAddress(addressField.getText());
+        saveButton.setOnAction(_ -> {
+            user.setUsername(usernameField.getText().isEmpty() ? null : usernameField.getText());
+            user.setFullName(fullNameField.getText().isEmpty() ? null : fullNameField.getText());
+            user.setAddress(addressField.getText().isEmpty() ? null : addressField.getText());
+        
+            if (dobPicker.getValue() != null) 
+                user.setDateOfBirth(dobPicker.getValue().atStartOfDay());
+            else user.setDateOfBirth(null);
+            
+            if (genderBox.getValue() != null) 
+                user.setGender(genderBox.getValue().equals("Nam") ? 'M' : 'F');
+            else user.setGender('U'); 
+            
+            user.setEmail(emailField.getText());
 
-            // Tạo đối tượng UserBUS và gọi phương thức updateUser()
-            UserBUS userBUS = new UserBUS();
-            boolean updateSuccess = userBUS.updateUser(user); // Gọi phương thức updateUser() từ đối tượng UserBUS
-            if (updateSuccess) {
-                // Cập nhật lại các Label trong PopupProfile
-                genderLabel.setText("Giới tính: " + genderField.getText());
-                dobLabel.setText("Ngày sinh: " + dobField.getText());
-                addressLabel.setText("Địa chỉ: " + addressField.getText());
-                
-                // Đóng cửa sổ chỉnh sửa
+            if (userBUS.updateUser(user)) {
                 editStage.close();
             } else {
-                // Hiển thị thông báo lỗi nếu cập nhật thất bại
                 System.out.println("Cập nhật thông tin không thành công");
             }
         });
 
-        content.getChildren().addAll(titleLabel, genderField, dobField, addressField, saveButton, cancelButton);
+        content.getChildren().addAll(titleLabel, usernameField, fullNameField, addressField, dobPicker, genderBox, emailField, saveButton, cancelButton);
 
         Scene editScene = new Scene(content);
         editScene.setFill(Color.TRANSPARENT);
 
         editStage.setScene(editScene);
-        editStage.setOnHidden(_ -> mainRoot.setEffect(null));
         editStage.showAndWait(); // Đợi popup đóng
     }
 }

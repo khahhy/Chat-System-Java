@@ -1,5 +1,6 @@
 package duck.presentation.userView;
 import duck.presentation.ClientApp;
+import duck.bus.LoginHistoryBUS;
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
 import javafx.scene.control.Button;
@@ -9,18 +10,23 @@ import javafx.scene.image.ImageView;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class HomePage {
     private final ClientApp app; 
     private final UserDTO user;
+    private final LoginHistoryBUS lh;
+    private final UserBUS userBUS;
 
     private final List<Button> sidebarButtons = new ArrayList<>();
 
     public HomePage(ClientApp app, UserDTO user) {
         this.app = app;
         this.user = user;
+        this.lh = new LoginHistoryBUS();
+        this.userBUS = new UserBUS();
     }
 
     public BorderPane getContent() {
@@ -70,7 +76,7 @@ public class HomePage {
         icon.setFitHeight(24); 
         button.setGraphic(icon);
 
-        button.setOnAction(e -> {
+        button.setOnAction(_ -> {
             switch (pageName) {
                 case "profile":
                     new PopupProfile(root, user).showPopup();
@@ -97,13 +103,16 @@ public class HomePage {
     
         
         MenuItem editPasswordItem = new MenuItem("Edit Password");
-        editPasswordItem.setOnAction(e -> {
+        editPasswordItem.setOnAction(_ -> {
             new PopupEditPw(root, user).showEditPwPopup();
         });
     
         
         MenuItem logoutItem = new MenuItem("Logout");
         logoutItem.setOnAction(_ -> {
+            lh.updateLogoutTime(user.getUserId(), LocalDateTime.now());
+            user.setOnline(false);
+            userBUS.updateUser(user);
             app.showLoginPage();   // app này là bên client app truyền vào ban đầu
         });
     

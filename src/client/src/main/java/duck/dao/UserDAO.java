@@ -72,7 +72,6 @@ public class UserDAO {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getFullName());
             stmt.setString(3, user.getAddress());
-            // Kiểm tra và gắn giá trị date_of_birth
             if (user.getDateOfBirth() != null) {
                 stmt.setTimestamp(4, Timestamp.valueOf(user.getDateOfBirth()));
             } else {
@@ -90,19 +89,24 @@ public class UserDAO {
 
   
     public boolean updateUser(UserDTO user) throws SQLException {
-        String query = "UPDATE users SET full_name = ?, address = ?, date_of_birth = ?, gender = ?, email = ?, password = ?, status = ?, is_online = ?, is_admin = ? WHERE user_id = ?";
+        String query = "UPDATE users SET full_name = ?, address = ?, date_of_birth = ?, gender = ?, email = ?, password = ?, status = ?, is_online = ?, is_admin = ?, username = ? WHERE user_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, user.getFullName());
             stmt.setString(2, user.getAddress());
-            stmt.setTimestamp(3, Timestamp.valueOf(user.getDateOfBirth()));
+            if (user.getDateOfBirth() != null) {
+                stmt.setTimestamp(3, Timestamp.valueOf(user.getDateOfBirth()));
+            } else {
+                stmt.setNull(3, Types.TIMESTAMP);
+            }
             stmt.setString(4, String.valueOf(user.getGender()));
             stmt.setString(5, user.getEmail());
             stmt.setString(6, user.getPassword());
             stmt.setBoolean(7, user.isStatus());
             stmt.setBoolean(8, user.isOnline());
             stmt.setBoolean(9, user.isAdmin());
-            stmt.setInt(10, user.getUserId());
+            stmt.setString(10, user.getUsername());
+            stmt.setInt(11, user.getUserId());
             return stmt.executeUpdate() > 0;
         }
     }
@@ -141,7 +145,7 @@ public class UserDAO {
                     rs.getString("username"),
                     rs.getString("full_name"),
                     rs.getString("address"),
-                    rs.getTimestamp("date_of_birth").toLocalDateTime(),
+                    rs.getTimestamp("date_of_birth") != null ? rs.getTimestamp("date_of_birth").toLocalDateTime() : null,
                     rs.getString("gender").charAt(0),
                     rs.getString("email"),
                     rs.getString("password"),

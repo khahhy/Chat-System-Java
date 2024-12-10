@@ -66,9 +66,9 @@ public class LoginHistoryBUS {
         }
     }
 
-    public boolean updateLogoutTime(int historyId, LocalDateTime logoutTime) {
+    public boolean updateLogoutTime(int user_id, LocalDateTime logoutTime) {
         try {
-            return loginHistoryDAO.updateLogoutTime(historyId, logoutTime);
+            return loginHistoryDAO.updateLogoutTime(user_id, logoutTime);
         } catch (SQLException e) {
             e.printStackTrace();
             return false;  
