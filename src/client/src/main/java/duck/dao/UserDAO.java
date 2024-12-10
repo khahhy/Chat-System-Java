@@ -1,6 +1,5 @@
 package duck.dao;
 
-import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
 
 import java.sql.*;
@@ -301,33 +300,6 @@ public class UserDAO {
         return false;  // Nếu có lỗi khi cập nhật
     }
 
-
-    public List<FriendDTO> getFriendsByUserId(int userId) throws SQLException {
-        List<FriendDTO> friends = new ArrayList<>();
-        String query = "SELECT * FROM friends WHERE user_id = ? AND is_blocked = false";
-    
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, userId);
-    
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    friends.add(new FriendDTO(
-                        rs.getInt("user_id"),
-                        rs.getInt("friend_id"),
-                        rs.getBoolean("is_blocked"),
-                        rs.getTimestamp("created_at").toLocalDateTime()
-                    ));
-                }
-            }
-        }
-    
-        return friends;
-    }
-    
-
-    
-
     public List<Map<String, Object>> getActivities(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         List<Map<String, Object>> activityList = new ArrayList<>();
         
@@ -424,6 +396,40 @@ public class UserDAO {
             }
         }
         return activityList;
+    }
+
+    public List<UserDTO> getBlockedUsersByUserId(int userId) throws SQLException {
+        List<UserDTO> blockedUsers = new ArrayList<>();
+        String query = "SELECT u.* FROM users u "
+                     + "JOIN friends f ON u.user_id = f.friend_id "
+                     + "WHERE f.user_id = ? AND f.is_blocked = true";
+    
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+    
+            preparedStatement.setInt(1, userId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    UserDTO user = new UserDTO(
+                        resultSet.getInt("user_id"),
+                        resultSet.getString("username"),
+                        resultSet.getString("full_name"),
+                        resultSet.getString("address"),
+                        resultSet.getTimestamp("date_of_birth").toLocalDateTime(),
+                        resultSet.getString("gender").charAt(0),
+                        resultSet.getString("email"),
+                        resultSet.getString("password"),
+                        resultSet.getBoolean("status"),
+                        resultSet.getBoolean("is_online"),
+                        resultSet.getTimestamp("created_at").toLocalDateTime(),
+                        resultSet.getBoolean("is_admin")
+                    );
+                    blockedUsers.add(user);
+                }
+            }
+    
+        } 
+        return blockedUsers;
     }
     
 }

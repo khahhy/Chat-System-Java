@@ -89,4 +89,14 @@ public class FriendBUS {
             return new ArrayList<>();
         }
     }
+
+    public boolean blockFriend(int userId, int friendId) {
+        try {
+            FriendDAO friendDAO = new FriendDAO();
+            return friendDAO.blockFriend(userId, friendId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

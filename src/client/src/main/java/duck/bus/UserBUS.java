@@ -105,15 +105,6 @@ public class UserBUS {
         return userDAO.getUserByEmail(email);
     }
 
-    public List<FriendDTO> getFriendList(int userId) {
-        try {
-            return userDAO.getFriendsByUserId(userId);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
-    }
-
     public UserDTO getUserById(int userId) {
         try {
             return userDAO.getUserById(userId);
@@ -132,40 +123,7 @@ public class UserBUS {
         }
     }
 
-    public static List<UserDTO> getAllUsers() {
-        List<UserDTO> users = new ArrayList<>();
-        String query = "SELECT * FROM users";
-
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(query);
-             ResultSet resultSet = preparedStatement.executeQuery()) {
-
-            while (resultSet.next()) {
-                UserDTO user = new UserDTO(
-                    resultSet.getInt("user_id"),
-                    resultSet.getString("username"),
-                    resultSet.getString("full_name"),
-                    resultSet.getString("address"),
-                    resultSet.getTimestamp("date_of_birth").toLocalDateTime(),
-                    resultSet.getString("gender").charAt(0),
-                    resultSet.getString("email"),
-                    resultSet.getString("password"),
-                    resultSet.getBoolean("status"),
-                    resultSet.getBoolean("is_online"),
-                    resultSet.getTimestamp("created_at").toLocalDateTime(),
-                    resultSet.getBoolean("is_admin")
-                );
-                users.add(user);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return users;
-    }
-
-    public static List<FriendDTO> getFriendsByUserId(int userId) {
+    /*public static List<FriendDTO> getFriendsByUserId(int userId) {
         List<FriendDTO> friends = new ArrayList<>();
         String query = "SELECT * FROM friends WHERE user_id = ?";
     
@@ -211,7 +169,7 @@ public class UserBUS {
             e.printStackTrace();
             return false;
         }
-    }
+    }*/
     
     public boolean unblockFriend(int userId, int friendId) {
         String query = "UPDATE friends SET is_blocked = false WHERE user_id = ? AND friend_id = ?";
@@ -232,41 +190,13 @@ public class UserBUS {
     }
     
     
-    public static List<UserDTO> getBlockedUsersByUserId(int userId) {
-        List<UserDTO> blockedUsers = new ArrayList<>();
-        String query = "SELECT u.* FROM users u "
-                     + "JOIN friends f ON u.user_id = f.friend_id "
-                     + "WHERE f.user_id = ? AND f.is_blocked = true";
-    
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-    
-            preparedStatement.setInt(1, userId);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                while (resultSet.next()) {
-                    UserDTO user = new UserDTO(
-                        resultSet.getInt("user_id"),
-                        resultSet.getString("username"),
-                        resultSet.getString("full_name"),
-                        resultSet.getString("address"),
-                        resultSet.getTimestamp("date_of_birth").toLocalDateTime(),
-                        resultSet.getString("gender").charAt(0),
-                        resultSet.getString("email"),
-                        resultSet.getString("password"),
-                        resultSet.getBoolean("status"),
-                        resultSet.getBoolean("is_online"),
-                        resultSet.getTimestamp("created_at").toLocalDateTime(),
-                        resultSet.getBoolean("is_admin")
-                    );
-                    blockedUsers.add(user);
-                }
-            }
-    
-        } catch (Exception e) {
+    public List<UserDTO> getBlockedUsersByUserId(int userId) {
+        try {
+            return userDAO.getBlockedUsersByUserId(userId);
+        } catch (SQLException e) {
             e.printStackTrace();
+            return null;
         }
-    
-        return blockedUsers;
     }
     
 }

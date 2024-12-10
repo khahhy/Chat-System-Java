@@ -53,7 +53,7 @@ public class FriendDAO {
         }
     }
 
-    public boolean deleteFriend(int userId, int friendId) {
+    public boolean deleteFriend(int userId, int friendId) throws SQLException {
         String sql = "DELETE FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -62,10 +62,7 @@ public class FriendDAO {
             stmt.setInt(3, friendId);
             stmt.setInt(4, userId);
             return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        } 
     }
     
 
@@ -118,7 +115,7 @@ public class FriendDAO {
         return 0; 
     }
     
-    public boolean blockFriend(int userId, int friendId) {
+    public boolean blockFriend(int userId, int friendId) throws SQLException {
         String deleteSql = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
         String updateSql = "UPDATE friends SET is_blocked = true WHERE user_id = ? AND friend_id = ?";
         
@@ -141,10 +138,7 @@ public class FriendDAO {
     
             conn.commit(); // Hoàn tất transaction
             return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        } 
     }
     
 }

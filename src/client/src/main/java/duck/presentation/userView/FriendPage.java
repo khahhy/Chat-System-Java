@@ -1,78 +1,46 @@
 package duck.presentation.userView;
 
 import duck.bus.FriendRequestBUS;
+import duck.bus.FriendBUS;
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
-import duck.dto.FriendDTO;
+
 import duck.dto.FriendRequestDTO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.geometry.Pos;
+
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
 import java.util.List;
 
 public class FriendPage {
-
+    private final UserBUS userBUS;
+    private final FriendBUS friendBUS;
     private final UserDTO user;
-    private final ObservableList<Friend> friends = FXCollections.observableArrayList();
+    private final ObservableList<UserDTO> filteredUsers;
 
     public FriendPage(UserDTO user) {
+        this.userBUS = new UserBUS();
+        this.friendBUS = new FriendBUS();
         this.user = user;
-        loadFriendsFromDatabase();
-    }
+        this.filteredUsers = FXCollections.observableArrayList();
+        loadUser();
+    }    
 
-    // Lớp đại diện cho bạn bè trong danh sách
-    public static class Friend {
-        private final String name;
-        private final boolean isFriend;
-        private final boolean isBlocked; // Thêm thuộc tính trạng thái block
-        private final int userId;
-
-        public Friend(int userId, String name, boolean isFriend, boolean isBlocked) {
-            this.userId = userId;
-            this.name = name;
-            this.isFriend = isFriend;
-            this.isBlocked = isBlocked;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public boolean isFriend() {
-            return isFriend;
-        }
-
-        public boolean isBlocked() {
-            return isBlocked;
-        }
-
-        public int getUserId() {
-            return userId;
-        }
-    }
-
-    // Phương thức để tải bạn bè từ database
-    private void loadFriendsFromDatabase() {
-        List<UserDTO> allUsers = UserBUS.getAllUsers(); // Lấy danh sách tất cả người dùng
-        List<FriendDTO> userFriends = UserBUS.getFriendsByUserId(user.getUserId()); // Lấy danh sách bạn bè
-        List<UserDTO> blockedUsers = UserBUS.getBlockedUsersByUserId(user.getUserId()); // Lấy danh sách bị chặn
+    private void loadUser() {
+        List<UserDTO> allUsers = userBUS.searchUsers("", "", null);
+        List<UserDTO> blockedUsers = userBUS.getBlockedUsersByUserId(user.getUserId()); 
     
         for (UserDTO otherUser : allUsers) {
-            if (otherUser.getUserId() != user.getUserId()) { // Bỏ qua chính người dùng
-                boolean isFriend = userFriends.stream()
-                        .anyMatch(friend -> friend.getFriendId() == otherUser.getUserId());
+            if (otherUser.getUserId() != user.getUserId()) { 
                 boolean isBlocked = blockedUsers.stream()
                         .anyMatch(blocked -> blocked.getUserId() == otherUser.getUserId());
-    
-                friends.add(new Friend(otherUser.getUserId(), otherUser.getFullName(), isFriend, isBlocked));
+                if (!isBlocked)
+                    filteredUsers.add(otherUser);
             }
         }
     }
-    
-    
 
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
@@ -127,8 +95,8 @@ public class FriendPage {
             hideDefaultMenu(leftMenu);
     
             searchResults.getChildren().clear();
-    
-            friends.filtered(item -> item.getName().toLowerCase().contains(newValue.toLowerCase()))
+           
+            filteredUsers.filtered(item -> item.getUsername().toLowerCase().contains(newValue.toLowerCase()))
                     .forEach(friend -> searchResults.getChildren().add(createSearchResult("Người dùng", friend)));
         });
     
@@ -171,20 +139,19 @@ public class FriendPage {
         Label contentLabel = new Label();
         Button actionButton = new Button();
         FriendRequestBUS friendRequestBUS = new FriendRequestBUS();
-        UserBUS userBUS = new UserBUS();
 
-        if ("Người dùng".equals(tag) && content instanceof Friend friend) {
-            contentLabel.setText(friend.getName());
+        if ("Người dùng".equals(tag) && content instanceof UserDTO friend) {
+            contentLabel.setText(friend.getUsername());
         
-            boolean isBlocked = friend.isBlocked();
-            boolean isFriend = friend.isFriend();
+            //boolean isBlocked = friend.isBlocked();
+            boolean isFriend = friendBUS.isFriend(user.getUserId(), friend.getUserId());
             boolean hasSentRequest = friendRequestBUS.hasSentRequest(user.getUserId(), friend.getUserId());
-        
-            if (isBlocked) {
+            boolean hasReceivedRequest = friendRequestBUS.hasReceivedRequest(friend.getUserId(), user.getUserId());
+            /*if (isBlocked) {
                 actionButton.setText("Hủy block");
-                actionButton.setOnAction(event -> {
+                actionButton.setOnAction(_ -> {
                     // Xóa bản ghi block khỏi cơ sở dữ liệu
-                    boolean success = userBUS.removeFriend(user.getUserId(), friend.getUserId());
+                    boolean success = friendBUS.deleteFriend(user.getUserId(), friend.getUserId());
                     if (success) {
                         System.out.println("Đã hủy block " + friend.getName());
                         actionButton.setText("Kết bạn"); // Chuyển trạng thái nút
@@ -192,14 +159,16 @@ public class FriendPage {
                         System.out.println("Không thể hủy block.");
                     }
                 });
-            } else if (isFriend) {
+            } */
+            //else 
+            if (isFriend) {
                 actionButton.setText("Nhắn tin");
-                actionButton.setOnAction(event -> {
-                    System.out.println("Nhắn tin với " + friend.getName());
+                actionButton.setOnAction(_ -> {
+                    System.out.println("Nhắn tin với " + friend.getUsername());
                 });
             } else if (hasSentRequest) {
                 actionButton.setText("Hủy lời mời kết bạn");
-                actionButton.setOnAction(event -> {
+                actionButton.setOnAction(_ -> {
                     List<FriendRequestDTO> sentRequests = friendRequestBUS.getSentRequestsByUserId(user.getUserId());
                     FriendRequestDTO targetRequest = sentRequests.stream()
                             .filter(request -> request.getReceiverId() == friend.getUserId() && "pending".equals(request.getStatus()))
@@ -210,22 +179,42 @@ public class FriendPage {
                         boolean success = friendRequestBUS.deleteFriendRequest(targetRequest.getRequestId());
                         if (success) {
                             actionButton.setText("Kết bạn");
-                            System.out.println("Đã hủy lời mời kết bạn với " + friend.getName());
+                            System.out.println("Đã hủy lời mời kết bạn với " + friend.getUsername());
                         } else {
                             System.out.println("Không thể hủy lời mời kết bạn.");
                         }
                     }
                 });
+            } 
+            else if (hasReceivedRequest) {
+                actionButton.setText("Đồng ý kết bạn");
+                actionButton.setOnAction(_ -> {
+                    List<FriendRequestDTO> sentRequests = friendRequestBUS.getSentRequestsByUserId(friend.getUserId());
+                    FriendRequestDTO targetRequest = sentRequests.stream()
+                            .filter(request -> request.getReceiverId() == friend.getUserId() && "pending".equals(request.getStatus()))
+                            .findFirst()
+                            .orElse(null);
+        
+                    if (targetRequest != null) {
+                        boolean success = friendRequestBUS.acceptFriendRequest(targetRequest.getRequestId(), friend.getUserId(), user.getUserId());
+                        if (success) {
+                            actionButton.setText("");
+                            System.out.println(friend.getUsername() + "đã kết bạn với " + user.getUsername());
+                        } else {
+                            System.out.println("Không thể đồng ý kết bạn.");
+                        }
+                    }
+                });
             } else {
                 actionButton.setText("Kết bạn");
-                actionButton.setOnAction(event -> {
+                actionButton.setOnAction(_ -> {
                     FriendRequestDTO newRequest = new FriendRequestDTO(
                             0, user.getUserId(), friend.getUserId(), "pending", java.time.LocalDateTime.now()
                     );
                     boolean success = friendRequestBUS.sendFriendRequest(newRequest);
                     if (success) {
                         actionButton.setText("Hủy lời mời kết bạn");
-                        System.out.println("Đã gửi lời mời kết bạn tới " + friend.getName());
+                        System.out.println("Đã gửi lời mời kết bạn tới " + friend.getUsername());
                     } else {
                         System.out.println("Không thể gửi lời mời kết bạn.");
                     }
