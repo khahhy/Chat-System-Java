@@ -3,15 +3,32 @@ package duck.presentation.userView;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.postgresql.translation.messages_bg;
+
+import duck.dto.MessageDTO;
+import duck.bus.MessageBUS;
+import duck.dao.MessageDAO;
+import duck.bus.FriendBUS;
+import duck.bus.UserBUS;
+import duck.dto.UserDTO;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.layout.*;   
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class MessagePage {
+    private final UserDTO user;
+    private UserDTO opponent;
+    public MessagePage(UserDTO user) {
+        this.user = user;
+        this.opponent = user;
+        loadFriend();
+    }    
 
     // tạm để thể hiện ui
     public class Friend {
@@ -36,7 +53,7 @@ public class MessagePage {
         public void setAdmin(String n) {admin = n;}
     }
 
-    private final List<Object> chatData = List.of(
+    private final ObservableList<Object> chatData = FXCollections.observableArrayList(
         new Friend("Trần Văn A"),
         new Friend("khahhy"),
         new Friend("duck"),
@@ -45,7 +62,19 @@ public class MessagePage {
         new Group("phòng 1", "khahhy", List.of("Trần Thị C", "khahhy", "Nguyễn E"))
     );
 
+    private void loadFriend() {
+        MessageBUS messageBUS = new MessageBUS(); 
+        List<UserDTO> friends = messageBUS.getFriendsFromMessage(user.getUserId()); 
+        for (UserDTO otherUser : friends) {
+            if (otherUser.getUserId() != user.getUserId()) { 
+                chatData.add(otherUser);
+            }
+        }
+    }
+    
+
     private VBox userInfoContainer = new VBox(10);
+    private VBox chatContentContainer = new VBox(10);
 
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
@@ -73,8 +102,8 @@ public class MessagePage {
 
         ListView<Object> chatList = new ListView<>();
         for (Object item : chatData) {
-            if (item instanceof Friend) {
-                chatList.getItems().add(((Friend) item).getName());
+            if (item instanceof UserDTO) {
+                chatList.getItems().add(((UserDTO) item).getFullName());
             } else if (item instanceof Group) {
                 chatList.getItems().add(((Group) item).getName());
             }
@@ -114,61 +143,33 @@ public class MessagePage {
 
     private VBox createChatContent() {
         VBox chatContent = new VBox(10);
-        chatContent.setStyle("-fx-padding: 10;");
+        chatContentContainer.setStyle("-fx-padding: 10;");
+        
 
-        // Danh sách tin nhắn
-        ScrollPane messagePane = new ScrollPane();
-        VBox messageContainer = new VBox(10); 
-        messageContainer.setStyle("-fx-padding: 10;");
-
-        messagePane.setContent(messageContainer);
-        messagePane.setFitToWidth(true);
-        VBox.setVgrow(messagePane, Priority.ALWAYS); 
-
-        // tạm
-        addMessage(messageContainer, "Bạn abc", "hi, đi ăn k", false);
-        addMessage(messageContainer, "Bạn", "ăn gì", true);
-        addMessage(messageContainer, "Bạn abc", "k biết", false);
-        addMessage(messageContainer, "Bạn", "?", true);
-        addMessage(messageContainer, "Bạn abc", "chọn đi", false);
-
-        TextField inputField = new TextField();
-        inputField.setPromptText("Nhập tin nhắn...");
-        inputField.setStyle("-fx-font-size: 14px;");
-        inputField.setOnAction(_ -> {
-            String message = inputField.getText();
-            if (!message.isEmpty()) {
-                addMessage(messageContainer, "Bạn", message, true);
-                inputField.clear();
-                messagePane.setVvalue(1.0); // Cuộn xuống đáy
-            }
-        });
-        inputField.prefWidthProperty().bind(chatContent.widthProperty()); // chiều rộng bằng nhau
-       
-        HBox inputArea = new HBox(10, inputField);
-        chatContent.getChildren().addAll(messagePane, inputArea);
-
-        return chatContent;
+        return chatContentContainer;
     }
 
-    private void addMessage(VBox container, String sender, String message, boolean isUser) {
+    private void addMessage(VBox container, MessageDTO message) {
         HBox messageBox = new HBox();
-        Label messageLabel = new Label(message);
+        Label messageLabel = new Label(message.getContent());
 
        
         messageLabel.setStyle("-fx-padding: 10; -fx-background-color: "
-            + (isUser ? "#DCF8C6" : "#FFFFFF") + "; -fx-border-radius: 10; "
+            + ((message.getSenderId() == user.getUserId()) ? "#DCF8C6" : "#FFFFFF") + "; -fx-border-radius: 10; "
             + "-fx-background-radius: 10; -fx-font-size: 14px;");
         
         MenuButton optionsMenu = new MenuButton();
         MenuItem deleteItem = new MenuItem("Xóa tin nhắn");
         deleteItem.setOnAction(_ -> {
-            container.getChildren().remove(messageBox); 
+            MessageBUS temp = new MessageBUS();
+            if (temp.deleteMessage(message.getMessageId())) {
+                container.getChildren().remove(messageBox);
+            }
         });
         optionsMenu.getItems().add(deleteItem);
         optionsMenu.setStyle("-fx-font-size: 12px; -fx-background-color: transparent;");
 
-        if (isUser) {
+        if (message.getSenderId() == user.getUserId()) {
             messageBox.setStyle("-fx-alignment: center-right;"); // mình nhắn
             messageBox.getChildren().addAll(optionsMenu, messageLabel);
         } else {
@@ -193,8 +194,11 @@ public class MessagePage {
     
         if (selected instanceof String name) {
             for (Object item : chatData) {
-                if (item instanceof Friend && ((Friend) item).getName().equals(name)) {
-                    updateFriendInfo((Friend) item);
+                if (item instanceof UserDTO && ((UserDTO) item).getFullName().equals(name)) {
+                    updateFriendInfo((UserDTO) item);
+                    opponent = ((UserDTO) item);
+                    chatContentContainer.getChildren().clear();
+                    updateChat();
                     return;
                 } else if (item instanceof Group && ((Group) item).getName().equals(name)) {
                     updateGroupInfo((Group) item);
@@ -203,9 +207,44 @@ public class MessagePage {
             }
         }
     }
+
+    private void updateChat() {
+        ScrollPane messagePane = new ScrollPane();
+        VBox messageContainer = new VBox(10); 
+        messageContainer.setStyle("-fx-padding: 10;");
+
+        messagePane.setContent(messageContainer);
+        messagePane.setFitToWidth(true);
+        VBox.setVgrow(messagePane, Priority.ALWAYS); 
+        List<MessageDTO> messageData;
+        MessageBUS temp = new MessageBUS();
+        messageData = temp.getMessagesBetweenUsers(opponent.getUserId(), user.getUserId());
+        for (MessageDTO message : messageData) {
+            addMessage(messageContainer, message);
+        }
+        
+        TextField inputField = new TextField();
+        inputField.setPromptText("Nhập tin nhắn...");
+        inputField.setStyle("-fx-font-size: 14px;");
+        inputField.setOnAction(_ -> {
+            String message = inputField.getText();
+            if (!message.isEmpty()) {
+                MessageDTO messageSend = new MessageDTO(user.getUserId(), opponent.getUserId(), message);
+                if (temp.addMessage(messageSend)) {
+                    addMessage(messageContainer, messageSend);
+                }
+                inputField.clear();
+                messagePane.setVvalue(1.0); // Cuộn xuống đáy
+            }
+        });
+        inputField.prefWidthProperty().bind(chatContentContainer.widthProperty()); // chiều rộng bằng nhau
+       
+        HBox inputArea = new HBox(10, inputField);
+        chatContentContainer.getChildren().addAll(messagePane, inputArea);
+    }
     
-    private void updateFriendInfo(Friend friend) {
-        Label userName = new Label(friend.getName());
+    private void updateFriendInfo(UserDTO friend) {
+        Label userName = new Label(friend.getFullName());
         userName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
         
         TextField searchField = new TextField();
@@ -414,5 +453,5 @@ public class MessagePage {
         popupStage.setScene(scene);
         popupStage.showAndWait();
     }
-    
+
 }

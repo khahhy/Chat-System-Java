@@ -1,5 +1,6 @@
 package duck.presentation.userView;
 
+import org.mindrot.jbcrypt.BCrypt;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
@@ -61,6 +62,7 @@ public class RegisterPage extends VBox {
                 return;
             }
 
+            String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
             // Tạo đối tượng UserDTO
             UserDTO userDTO = new UserDTO(
                 0, // userId
@@ -70,7 +72,7 @@ public class RegisterPage extends VBox {
                 null, // dateOfBirth
                 'U', // gender (default: not specified)
                 email,
-                password,
+                hashedPassword,
                 true, // status
                 false, // isOnline
                 null, // createdAt

@@ -2,7 +2,7 @@ package duck.bus;
 
 import duck.dao.MessageDAO;
 import duck.dto.MessageDTO;
-
+import duck.dto.UserDTO;
 import java.sql.SQLException;
 
 import java.util.ArrayList;
@@ -71,4 +71,12 @@ public class MessageBUS {
         }
     }
 
+    public List<UserDTO> getFriendsFromMessage(int userId) {
+        try {
+            return messageDAO.getFriendsFromMessage(userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>();  
+        }
+    }
 }

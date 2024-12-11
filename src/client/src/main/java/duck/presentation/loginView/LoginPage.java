@@ -6,6 +6,8 @@ import duck.bus.LoginHistoryBUS;
 import duck.bus.UserBUS;
 import duck.presentation.ClientApp;
 
+import org.mindrot.jbcrypt.BCrypt; 
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -165,43 +167,52 @@ public class LoginPage {
 
     private Optional<UserDTO> isValidUser(String username, String password) {
         String query = "SELECT user_id, username, full_name, address, date_of_birth, gender, email, password, status, is_online, created_at, is_admin " +
-                               "FROM Users WHERE username = ? AND password = ? AND status = TRUE";
+                       "FROM Users WHERE username = ? AND status = TRUE"; // Không cần kiểm tra mật khẩu trong câu lệnh SQL, ta sẽ làm việc này trong Java
+    
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
-                    
+    
             stmt.setString(1, username);
-            stmt.setString(2, password); // Nếu mật khẩu được băm, xử lý băm trước khi so sánh.
-                    
             ResultSet rs = stmt.executeQuery();
+    
             if (rs.next()) {
-                LocalDateTime dateOfBirth = null;
-                if (rs.getTimestamp("date_of_birth") != null) {
-                    dateOfBirth = rs.getTimestamp("date_of_birth").toLocalDateTime();
+                String hashedPassword = rs.getString("password"); // Lấy mật khẩu đã mã hóa từ cơ sở dữ liệu
+    
+                // Kiểm tra xem mật khẩu người dùng nhập vào có khớp với mật khẩu đã mã hóa trong cơ sở dữ liệu
+                if (BCrypt.checkpw(password, hashedPassword)) {
+                    // Nếu mật khẩu hợp lệ, tạo đối tượng UserDTO và trả về
+                    LocalDateTime dateOfBirth = null;
+                    if (rs.getTimestamp("date_of_birth") != null) {
+                        dateOfBirth = rs.getTimestamp("date_of_birth").toLocalDateTime();
+                    }
+    
+                    String genderStr = rs.getString("gender");
+                    char gender = (genderStr != null && !genderStr.isEmpty()) ? genderStr.charAt(0) : 'U'; // 'U' cho unknown
+    
+                    UserDTO user = new UserDTO(
+                        rs.getInt("user_id"),
+                        rs.getString("username"),
+                        rs.getString("full_name"),
+                        rs.getString("address"),
+                        dateOfBirth,
+                        gender,
+                        rs.getString("email"),
+                        hashedPassword, // Mật khẩu đã mã hóa
+                        rs.getBoolean("status"),
+                        rs.getBoolean("is_online"),
+                        rs.getTimestamp("created_at").toLocalDateTime(),
+                        rs.getBoolean("is_admin")
+                    );
+                    return Optional.of(user); // Trả về đối tượng UserDTO nếu hợp lệ.
+                } else {
+                    // Nếu mật khẩu không khớp, trả về Optional.empty()
+                    return Optional.empty();
                 }
-            
-                String genderStr = rs.getString("gender");
-                char gender = (genderStr != null && !genderStr.isEmpty()) ? genderStr.charAt(0) : 'U'; // 'U' cho unknown
-            
-                UserDTO user = new UserDTO (
-                    rs.getInt("user_id"),
-                    rs.getString("username"),
-                    rs.getString("full_name"),
-                    rs.getString("address"),
-                    dateOfBirth,
-                    gender,
-                    rs.getString("email"),
-                    rs.getString("password"),
-                    rs.getBoolean("status"),
-                    rs.getBoolean("is_online"),
-                    rs.getTimestamp("created_at").toLocalDateTime(),
-                    rs.getBoolean("is_admin")
-                );
-                return Optional.of(user); // Trả về đối tượng UserDTO nếu hợp lệ.
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return Optional.empty(); // Trả về Optional.empty() nếu không tìm thấy tài khoản.
+        return Optional.empty(); // Trả về Optional.empty() nếu không tìm thấy tài khoản hoặc mật khẩu sai.
     }
             
     private Optional<UserDTO> isAdmin(String username, String password) {

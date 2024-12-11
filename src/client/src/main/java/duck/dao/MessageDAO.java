@@ -1,6 +1,7 @@
 package duck.dao;
 
 import duck.dto.MessageDTO;
+import duck.dto.UserDTO;
 
 import java.sql.*;
 
@@ -66,7 +67,11 @@ public class MessageDAO {
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, message.getSenderId());
             stmt.setInt(2, message.getReceiverId());
-            stmt.setInt(3, message.getGroupId());
+            if (message.getGroupId()==0) {
+                stmt.setNull(3, Types.INTEGER);
+            } else {
+                stmt.setInt(3, message.getGroupId());
+            }
             stmt.setString(4, message.getContent());
             stmt.setTimestamp(5, Timestamp.valueOf(message.getTimestamp()));
             stmt.setBoolean(6, message.isEncrypted());
@@ -117,6 +122,57 @@ public class MessageDAO {
             }
         }
         return messages;
+    }
+    
+    public List<UserDTO> getFriendsFromMessage(int userId) throws SQLException {
+        List<UserDTO> friends = new ArrayList<>();
+    
+        // Query to find all user IDs who have messages with the given userId
+        String query = "SELECT DISTINCT CASE " +
+                       "WHEN sender_id = ? THEN receiver_id " +
+                       "WHEN receiver_id = ? THEN sender_id " +
+                       "END AS friend_id " +
+                       "FROM messages " +
+                       "WHERE sender_id = ? OR receiver_id = ?";
+    
+        // Subquery results to fetch user details
+        String userQuery = "SELECT * FROM users WHERE user_id = ?";
+    
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, userId);
+            stmt.setInt(3, userId);
+            stmt.setInt(4, userId);
+    
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int friendId = rs.getInt("friend_id");
+    
+                // Fetch user details for each friendId
+                try (PreparedStatement userStmt = conn.prepareStatement(userQuery)) {
+                    userStmt.setInt(1, friendId);
+                    ResultSet userRs = userStmt.executeQuery();
+                    if (userRs.next()) {
+                        friends.add(new UserDTO(
+                            userRs.getInt("user_id"),
+                            userRs.getString("username"),
+                            userRs.getString("full_name"),
+                            userRs.getString("address"),
+                            userRs.getTimestamp("date_of_birth").toLocalDateTime(),
+                            userRs.getString("gender").charAt(0),
+                            userRs.getString("email"),
+                            userRs.getString("password"),
+                            userRs.getBoolean("status"),
+                            userRs.getBoolean("is_online"),
+                            userRs.getTimestamp("created_at").toLocalDateTime(),
+                            userRs.getBoolean("is_admin")
+                        ));
+                    }
+                }
+            }
+        }
+        return friends;
     }
     
 }
