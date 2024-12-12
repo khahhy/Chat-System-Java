@@ -27,16 +27,24 @@ public class GroupDAO {
         return groups;
     }
 
-    // Thêm một nhóm mới
-    public boolean addGroup(GroupDTO group) throws SQLException {
-        String query = "INSERT INTO groups (group_name, created_at) VALUES (?, ?)";
+
+    public int addGroup(GroupDTO group) throws SQLException {
+        String query = "INSERT INTO groups (group_name, created_at) VALUES (?, ?) RETURNING group_id";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, group.getGroupName());
             stmt.setTimestamp(2, Timestamp.valueOf(group.getCreatedAt()));
-            return stmt.executeUpdate() > 0;
+    
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("group_id"); 
+                } else {
+                    throw new SQLException("Failed to create group, no ID obtained.");
+                }
+            }
         }
     }
+    
 
     // Xóa một nhóm
     public boolean deleteGroup(int groupId) throws SQLException {
@@ -48,4 +56,64 @@ public class GroupDAO {
         }
     }
 
-}
+    public boolean updateGroup(GroupDTO group) throws SQLException {
+        String query = "UPDATE groups SET group_name = ?, created_at = ? WHERE group_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, group.getGroupName());
+            stmt.setTimestamp(2, Timestamp.valueOf(group.getCreatedAt()));
+            stmt.setInt(3, group.getGroupId());
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    // lay gr theo user id
+    public List<GroupDTO> getGroupsByUserId(int userId) throws SQLException {
+        List<GroupDTO> groups = new ArrayList<>();
+        String query = """
+            SELECT g.group_id, g.group_name, g.created_at
+            FROM groups g
+            INNER JOIN groupmembers gm ON g.group_id = gm.group_id
+            WHERE gm.user_id = ? AND gm.is_approved = true
+        """;
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                groups.add(new GroupDTO(
+                        rs.getInt("group_id"),
+                        rs.getString("group_name"),
+                        rs.getTimestamp("created_at").toLocalDateTime()
+                ));
+            }
+        }
+        return groups;
+    }
+    
+    public List<GroupDTO> getGroupRequestByUserId(int userId) throws SQLException {
+        List<GroupDTO> groups = new ArrayList<>();
+        String query = """
+            SELECT g.group_id, g.group_name, g.created_at
+            FROM groups g
+            INNER JOIN groupmembers gm ON g.group_id = gm.group_id
+            WHERE gm.user_id = ? AND gm.is_approved = false
+        """;
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                groups.add(new GroupDTO(
+                        rs.getInt("group_id"),
+                        rs.getString("group_name"),
+                        rs.getTimestamp("created_at").toLocalDateTime()
+                ));
+            }
+        }
+        return groups;
+    }
+
+}   

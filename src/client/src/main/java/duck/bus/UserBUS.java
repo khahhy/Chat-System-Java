@@ -1,14 +1,11 @@
 package duck.bus;
 
 import duck.dao.DatabaseConnection;
-import duck.dao.FriendDAO;
 import duck.dao.UserDAO;
-import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;

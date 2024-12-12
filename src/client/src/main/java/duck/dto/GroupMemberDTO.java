@@ -7,12 +7,14 @@ public class GroupMemberDTO {
     private int userId;
     private boolean isAdmin;  
     private LocalDateTime joinedAt;
+    private boolean isApproved;
 
-    public GroupMemberDTO(int groupId, int userId, boolean isAdmin, LocalDateTime joinedAt) {
+    public GroupMemberDTO(int groupId, int userId, boolean isAdmin, LocalDateTime joinedAt, boolean isApproved) {
         this.groupId = groupId;
         this.userId = userId;
         this.isAdmin = isAdmin;
         this.joinedAt = joinedAt;
+        this.isApproved = isApproved;
     }
 
     
@@ -27,4 +29,7 @@ public class GroupMemberDTO {
 
     public LocalDateTime getJoinedAt() { return joinedAt; }
     public void setJoinedAt(LocalDateTime joinedAt) { this.joinedAt = joinedAt; }
+
+    public boolean isApproved() { return isApproved; }
+    public void setApproved(boolean approved) { isApproved = approved; }
 }

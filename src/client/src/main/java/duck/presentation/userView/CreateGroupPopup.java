@@ -1,5 +1,17 @@
 package duck.presentation.userView;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import duck.bus.GroupBUS;
+import duck.bus.GroupMemberBUS;
+import duck.dto.GroupDTO;
+import duck.dto.GroupMemberDTO;
+import duck.dto.UserDTO;
+import duck.dto.FriendDTO;
+import duck.bus.UserBUS;
+import duck.bus.FriendBUS;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -10,29 +22,23 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 public class CreateGroupPopup {
-    public static class Friend {
-        private final String name;
-        private final boolean isOnline;
+    private final UserDTO user;
+    private final UserBUS userBUS;
+    private final FriendBUS friendBUS;
+    private final GroupMemberBUS groupMemBUS;
+    private final GroupBUS groupBUS;
+    private final List<FriendDTO> friend_list;
+    private final ObservableList<FriendDTO> friends;
 
-        public Friend(String name, boolean isOnline) {
-            this.name = name;
-            this.isOnline = isOnline;
-        }
-
-        public String getName() { return name;}
-
-        public boolean isOnline() {return isOnline;}
-
-        public String toString() {return name;}
+    public CreateGroupPopup(UserDTO user) {
+        this.user = user;
+        userBUS = new UserBUS();
+        friendBUS = new FriendBUS();
+        groupMemBUS = new GroupMemberBUS();
+        groupBUS = new GroupBUS();
+        friend_list = friendBUS.getFriendsByUserId(user.getUserId());
+        friends = FXCollections.observableArrayList(friend_list);
     }
-
-    // Tạo tạm
-    private final ObservableList<Friend> friends = FXCollections.observableArrayList(
-        new Friend("Nguyễn Văn A", true),
-        new Friend("Trần Thị B", false),
-        new Friend("Phạm Minh C", true),
-        new Friend("Đỗ Quốc D", false)
-    );
 
     public void show(String selectedFriendName) {
         Stage popupStage = new Stage();
@@ -52,30 +58,33 @@ public class CreateGroupPopup {
         Label membersLabel = new Label("Chọn thành viên:");
         membersLabel.setStyle("-fx-font-size: 14px;");
 
-        ObservableList<Friend> selectedFriends = FXCollections.observableArrayList();
-        ListView<Friend> friendListView = new ListView<>(friends);
+        ObservableList<FriendDTO> selectedFriends = FXCollections.observableArrayList();
+        ListView<FriendDTO> friendListView = new ListView<>(friends);
 
         friendListView.setCellFactory(_ -> new ListCell<>() {
-            @Override
-            protected void updateItem(Friend friend, boolean empty) {
+            protected void updateItem(FriendDTO friend, boolean empty) {
                 super.updateItem(friend, empty);
                 if (empty || friend == null) {
                     setGraphic(null);
                 } else {
+                    String friend_name = userBUS.getUserById(friend.getFriendId()).getUsername();
                     HBox container = new HBox(10);
                     container.setStyle("-fx-alignment: center-left;");
 
-                    CheckBox checkBox = new CheckBox(friend.getName());
+                    CheckBox checkBox = new CheckBox(friend_name);
                     checkBox.setStyle("-fx-font-size: 14px;");
 
-                    if (friend.getName().equals(selectedFriendName)) {
-                        checkBox.setSelected(true);
-                        selectedFriends.add(friend);
+                    if (friend_name.equals(selectedFriendName)) { 
+                        checkBox.setSelected(true); 
+                        if (!selectedFriends.contains(friend)) { 
+                            selectedFriends.add(friend); 
+                        } 
                     }
-
                     checkBox.selectedProperty().addListener((_, _, newValue) -> {
                         if (newValue) {
-                            selectedFriends.add(friend);
+                            if (!selectedFriends.contains(friend)) {
+                                selectedFriends.add(friend);
+                            }
                         } else {
                             selectedFriends.remove(friend);
                         }
@@ -97,11 +106,32 @@ public class CreateGroupPopup {
                 return;
             }
 
-            System.out.println("Tạo nhóm: " + groupName);
-            System.out.println("Thành viên:");
-            selectedFriends.forEach(friend -> System.out.println(" - " + friend.getName()));
+            if (selectedFriends == null || selectedFriends.size() == 0) {
+                Alert alert = new Alert(Alert.AlertType.WARNING, "Thêm ít nhất một thành viên!", ButtonType.OK);
+                alert.showAndWait();
+                return;
+            }
 
-            popupStage.close();
+            try {
+                GroupDTO group = new GroupDTO(0, groupName, LocalDateTime.now());
+                int groupId = groupBUS.addGroup(group);
+        
+                GroupMemberDTO adminMember = new GroupMemberDTO(groupId, user.getUserId(), true, LocalDateTime.now(), true);
+                groupMemBUS.addMember(adminMember);
+        
+                for (FriendDTO friend : selectedFriends) {
+                    GroupMemberDTO member = new GroupMemberDTO(groupId, friend.getFriendId(), false, null, false);
+                    groupMemBUS.addMember(member);
+                }
+        
+                Alert successAlert = new Alert(Alert.AlertType.INFORMATION, "Nhóm \"" + groupName + "\" đã được tạo thành công!", ButtonType.OK);
+                successAlert.showAndWait();
+                popupStage.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Đã xảy ra lỗi khi tạo nhóm! Vui lòng thử lại.", ButtonType.OK);
+                alert.showAndWait();
+            }
         });
 
         Button cancelButton = new Button("Cancel");

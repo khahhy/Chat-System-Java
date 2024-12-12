@@ -120,8 +120,8 @@ public class Admin_manageGroups {
     }
 
     private void showGroupDetailsPopup(GroupDTO group) {
-        List<String> admins = groupMemBUS.getAdminOrMem(group.getGroupId(), true);
-        List<String> members = groupMemBUS.getAdminOrMem(group.getGroupId(), false);
+        List<String> admins = groupMemBUS.getAdmin(group.getGroupId());
+        List<String> members = groupMemBUS.getMem(group.getGroupId());
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
         popup.initStyle(StageStyle.UTILITY);
@@ -131,7 +131,8 @@ public class Admin_manageGroups {
         content.setStyle("-fx-padding: 20;");
 
         Label groupNameLabel = new Label("Tên nhóm: " + group.getGroupName());
-        Label createdAtLabel = new Label("Ngày tạo: " + group.getCreatedAt());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        Label createdAtLabel = new Label("Ngày tạo: " + group.getCreatedAt().format(formatter));
 
         ListView<String> adminListView = new ListView<>(FXCollections.observableArrayList(admins));
         adminListView.setPrefHeight(100);

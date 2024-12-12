@@ -1,5 +1,13 @@
 package duck.presentation.userView;
 
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+import duck.bus.GroupBUS;
+import duck.bus.GroupMemberBUS;
+import duck.dto.GroupDTO;
+import duck.dto.UserDTO;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -11,42 +19,38 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 public class GroupRequestView {
+    private final UserDTO user;
+    private final GroupMemberBUS groupMemBUS;
+    private final GroupBUS groupBUS;
+    private final List<GroupDTO> group_list;
+    private final ObservableList<GroupDTO> groups;
 
-    static class Group {
-        private final String name;
-        private final String admin;
-        public Group(String name, String admin) {
-            this.name = name;
-            this.admin = admin;
-        }
-        public String getName() {return name;}
-        public String getAdmin() {return admin;}
+    public GroupRequestView(UserDTO user) {
+        this.user = user;
+        groupMemBUS = new GroupMemberBUS();
+        groupBUS = new GroupBUS();
+        group_list = groupBUS.getAllGroupRequestByUserId(user.getUserId());
+        groups = FXCollections.observableArrayList(group_list);
     }
+
 
     public VBox getContent() {
         VBox content = new VBox(10);
         content.setStyle("-fx-padding: 10;");
 
-        ObservableList<Group> groups = FXCollections.observableArrayList(
-            new Group("Nhóm 1", "Admin A"),
-            new Group("Nhóm 2", "Admin B"),
-            new Group("Nhóm 3", "Admin C"),
-            new Group("Nhóm 4", "Admin D")
-        );
 
-        ObservableList<Group> displayedGroups = FXCollections.observableArrayList(groups);
+        ObservableList<GroupDTO> displayedGroups = FXCollections.observableArrayList(groups);
 
         ComboBox<String> sortOptions = new ComboBox<>();
         sortOptions.getItems().addAll("A-Z", "Z-A");
         sortOptions.setValue("A-Z");
         sortOptions.setStyle("-fx-font-size: 14px;");
 
-        ListView<Group> groupList = new ListView<>(displayedGroups);
+        ListView<GroupDTO> groupList = new ListView<>(displayedGroups);
         VBox.setVgrow(groupList, Priority.ALWAYS);
 
         groupList.setCellFactory(_ -> new ListCell<>() {
-            @Override
-            protected void updateItem(Group item, boolean empty) {
+            protected void updateItem(GroupDTO item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setGraphic(null);
@@ -55,7 +59,7 @@ public class GroupRequestView {
                     container.setStyle("-fx-background-color: #E8E8E8; -fx-padding: 10;");
         
 
-                    Text groupName = new Text(item.getName());
+                    Text groupName = new Text(item.getGroupName());
                     groupName.setStyle("-fx-font-size: 14px; -fx-fill: #333;");
                     container.setLeft(groupName);
 
@@ -70,13 +74,17 @@ public class GroupRequestView {
                     viewInfo.setOnAction(_ -> showGroupInfoPopup(item));
 
                     accept.setOnAction(_ -> {
-                        groups.remove(item); 
-                        displayedGroups.remove(item); 
+                        if (groupMemBUS.approveMember(item.getGroupId(), user.getUserId())) {
+                            groups.remove(item); 
+                            displayedGroups.remove(item); 
+                        }
                     });
 
                     reject.setOnAction(_ -> {
-                        groups.remove(item); 
-                        displayedGroups.remove(item); 
+                        if (groupMemBUS.removeMember(item.getGroupId(), user.getUserId())) {
+                            groups.remove(item); 
+                            displayedGroups.remove(item); 
+                        }                        
                     });
 
                     container.setRight(optionsButton);
@@ -89,9 +97,9 @@ public class GroupRequestView {
         sortOptions.setOnAction(_ -> {
             String sortChoice = sortOptions.getValue();
             if ("A-Z".equals(sortChoice)) {
-                displayedGroups.sort((f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
+                displayedGroups.sort((f1, f2) -> f1.getGroupName().compareToIgnoreCase(f2.getGroupName()));
             } else if ("Z-A".equals(sortChoice)) {
-                displayedGroups.sort((f1, f2) -> f2.getName().compareToIgnoreCase(f1.getName()));
+                displayedGroups.sort((f1, f2) -> f2.getGroupName().compareToIgnoreCase(f1.getGroupName()));
             }
         });
 
@@ -100,28 +108,34 @@ public class GroupRequestView {
         return content;
     }
 
-    private void showGroupInfoPopup(Group group) {
-        Stage popupStage = new Stage();
-        popupStage.initModality(Modality.APPLICATION_MODAL);
-        popupStage.initStyle(StageStyle.TRANSPARENT);
+    private void showGroupInfoPopup(GroupDTO group) {
+        List<String> admins = groupMemBUS.getAdmin(group.getGroupId());
+        
+        Stage popup = new Stage();
+        popup.initModality(Modality.APPLICATION_MODAL);
+        popup.initStyle(StageStyle.UTILITY);
+        popup.setTitle("Chi tiết nhóm: " + group.getGroupName());
 
         VBox content = new VBox(10);
         content.setStyle("-fx-padding: 20;");
 
-        Label nameLabel = new Label("Tên nhóm: " + group.getName());
-        nameLabel.setStyle("-fx-font-size: 16px;");
+        Label groupNameLabel = new Label("Tên nhóm: " + group.getGroupName());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        Label createdAtLabel = new Label("Ngày tạo: " + group.getCreatedAt().format(formatter));
 
-        Label adminLabel = new Label("Admin: " + group.getAdmin());
-        adminLabel.setStyle("-fx-font-size: 16px;");
 
-        Button closeButton = new Button("Đóng");
-        closeButton.setStyle("-fx-font-size: 14px;");
-        closeButton.setOnAction(_ -> popupStage.close());
+        ListView<String> adminListView = new ListView<>(FXCollections.observableArrayList(admins));
+        adminListView.setPrefHeight(100);
 
-        content.getChildren().addAll(nameLabel, adminLabel, closeButton);
+        content.getChildren().addAll(
+            groupNameLabel,
+            createdAtLabel,
+            new Label("Danh sách Admin:"),
+            adminListView           
+        );
 
-        Scene scene = new Scene(content, 300, 200);
-        popupStage.setScene(scene);
-        popupStage.showAndWait();
+        Scene scene = new Scene(content, 400, 400);
+        popup.setScene(scene);
+        popup.showAndWait();
     }
 }

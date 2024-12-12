@@ -10,7 +10,7 @@ public class FriendRequestDAO {
     // lời mời đã gửi
     public List<FriendRequestDTO> getSentRequestsByUserId(int senderId) throws SQLException {
         List<FriendRequestDTO> requestList = new ArrayList<>();
-        String query = "SELECT * FROM FriendRequests WHERE sender_id = ?";
+        String query = "SELECT * FROM FriendRequests WHERE sender_id = ? AND status = 'pending'";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -32,7 +32,7 @@ public class FriendRequestDAO {
     // lời mời đã nhận
     public List<FriendRequestDTO> getReceivedRequestsByUserId(int receiverId) throws SQLException {
         List<FriendRequestDTO> requestList = new ArrayList<>();
-        String query = "SELECT * FROM FriendRequests WHERE receiver_id = ?";
+        String query = "SELECT * FROM FriendRequests WHERE receiver_id = ? AND status = 'pending'";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -87,7 +87,7 @@ public class FriendRequestDAO {
 
     // check user đã gửi lời mời kết bạn cho mình chưa
     public boolean hasSentRequest(int senderId, int receiverId) throws SQLException {
-        String query = "SELECT COUNT(*) FROM FriendRequests WHERE sender_id = ? AND receiver_id = ?";
+        String query = "SELECT COUNT(*) FROM FriendRequests WHERE sender_id = ? AND receiver_id = ? AND status = 'pending'";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, senderId);
@@ -99,7 +99,7 @@ public class FriendRequestDAO {
 
     // check user đã đồng ý kết bạn chưa
     public boolean hasReceivedRequest(int senderId, int receiverId) throws SQLException {
-        String query = "SELECT COUNT(*) FROM FriendRequests WHERE sender_id = ? AND receiver_id = ?";
+        String query = "SELECT COUNT(*) FROM FriendRequests WHERE sender_id = ? AND receiver_id = ? AND status = 'pending'";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, senderId);

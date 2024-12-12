@@ -1,5 +1,5 @@
 package duck.presentation.userView;
-import java.time.LocalDateTime;
+
 import java.util.List;
 
 import duck.bus.FriendBUS;
@@ -140,7 +140,7 @@ public class FriendListView {
                 
 
                     createGroup.setOnAction(_ -> {
-                        CreateGroupPopup createGroupPopup = new CreateGroupPopup();
+                        CreateGroupPopup createGroupPopup = new CreateGroupPopup(user);
                         createGroupPopup.show(item.getUsername());
                     });
 

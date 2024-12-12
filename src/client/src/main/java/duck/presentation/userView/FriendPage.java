@@ -4,28 +4,48 @@ import duck.bus.FriendRequestBUS;
 import duck.bus.FriendBUS;
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
+import duck.bus.GroupBUS;
+import duck.dto.GroupDTO;
 
 import duck.dto.FriendRequestDTO;
+import javafx.animation.PauseTransition;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
+import javafx.collections.transformation.FilteredList;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+
+import javafx.util.Duration;
 
 import java.util.List;
 
 public class FriendPage {
     private final UserBUS userBUS;
     private final FriendBUS friendBUS;
+    private final GroupBUS groupBUS;
     private final UserDTO user;
-    private final ObservableList<UserDTO> filteredUsers;
+
+    private final FriendRequestBUS friendRequestBUS;
+
+    private final ObservableList<UserDTO> users_list;
+    private final FilteredList<UserDTO> filteredList;
+    private final FilteredList<GroupDTO> filteredGroupList;
+    private final ObservableList<GroupDTO> groups_list;
 
     public FriendPage(UserDTO user) {
         this.userBUS = new UserBUS();
         this.friendBUS = new FriendBUS();
+        this.groupBUS = new GroupBUS();
+        friendRequestBUS = new FriendRequestBUS();
         this.user = user;
-        this.filteredUsers = FXCollections.observableArrayList();
+        this.users_list = FXCollections.observableArrayList();
         loadUser();
+        this.filteredList = new FilteredList<>(users_list, _ -> true);
+
+        List<GroupDTO> groupDTOlist = groupBUS.getAllGroupsByUserId(user.getUserId());
+        groups_list = FXCollections.observableArrayList(groupDTOlist);
+        this.filteredGroupList = new FilteredList<>(groups_list, _ -> true);
     }    
 
     private void loadUser() {
@@ -37,7 +57,7 @@ public class FriendPage {
                 boolean isBlocked = blockedUsers.stream()
                         .anyMatch(blocked -> blocked.getUserId() == otherUser.getUserId());
                 if (!isBlocked)
-                    filteredUsers.add(otherUser);
+                    users_list.add(otherUser);
             }
         }
     }
@@ -80,15 +100,19 @@ public class FriendPage {
         searchResults.setStyle("-fx-padding: 10;");
         searchResults.setVisible(false);
         searchResults.setManaged(false);
-    
+        
+        PauseTransition pause = new PauseTransition(Duration.millis(300));
         searchField.textProperty().addListener((_, _, newValue) -> {
+            pause.setOnFinished(_ -> {
             if (newValue.isEmpty()) {
-                searchResults.setVisible(false);
-                searchResults.setManaged(false);
-                backButton.setVisible(false);
-                showDefaultMenu(leftMenu);
+                Platform.runLater(() -> {
+                    searchResults.setVisible(false);
+                    searchResults.setManaged(false);
+                    backButton.setVisible(false);
+                    showDefaultMenu(leftMenu);
+                });
                 return;
-            }
+            } 
             searchResults.setVisible(true);
             searchResults.setManaged(true);
             backButton.setVisible(true);
@@ -96,8 +120,19 @@ public class FriendPage {
     
             searchResults.getChildren().clear();
            
-            filteredUsers.filtered(item -> item.getUsername().toLowerCase().contains(newValue.toLowerCase()))
+
+            // Hiển thị kết quả tìm kiếm
+            Platform.runLater(() -> {
+                filteredList.filtered(item -> item.getUsername().toLowerCase().contains(newValue.toLowerCase())).stream().limit(10).toList()
                     .forEach(friend -> searchResults.getChildren().add(createSearchResult("Người dùng", friend)));
+                
+                filteredGroupList.filtered(item -> item.getGroupName().toLowerCase().contains(newValue.toLowerCase())).stream().limit(10).toList()
+                    .forEach(group -> searchResults.getChildren().add(createSearchResult("Nhóm", group)));
+            });
+        });
+
+        // Khởi động lại debounce mỗi khi có thay đổi trong `searchField`
+        pause.playFromStart();
         });
     
         Button friendListButton = new Button("Danh sách bạn bè");
@@ -108,7 +143,7 @@ public class FriendPage {
         Button groupListButton = new Button("Danh sách nhóm");
         groupListButton.setPrefWidth(200);
         groupListButton.setStyle("-fx-font-size: 14px;");
-        groupListButton.setOnAction(_ -> root.setCenter(new GroupListView().getContent()));
+        groupListButton.setOnAction(_ -> root.setCenter(new GroupListView(user).getContent()));
     
         Button friendRequestButton = new Button("Lời mời kết bạn");
         friendRequestButton.setPrefWidth(200);
@@ -118,7 +153,7 @@ public class FriendPage {
         Button groupInviteButton = new Button("Lời mời vào nhóm");
         groupInviteButton.setPrefWidth(200);
         groupInviteButton.setStyle("-fx-font-size: 14px;");
-        groupInviteButton.setOnAction(_ -> root.setCenter(new GroupRequestView().getContent()));
+        groupInviteButton.setOnAction(_ -> root.setCenter(new GroupRequestView(user).getContent()));
     
         leftMenu.getChildren().addAll(searchBox, searchResults, friendListButton, groupListButton, friendRequestButton, groupInviteButton);
         return leftMenu;
@@ -136,38 +171,38 @@ public class FriendPage {
         Label tagLabel = new Label("[" + tag + "]");
         tagLabel.setStyle("-fx-font-size: 10px; -fx-font-weight: bold;");
 
-        Label contentLabel = new Label();
-        Button actionButton = new Button();
-        FriendRequestBUS friendRequestBUS = new FriendRequestBUS();
+        Label contentLabel = new Label(content.toString());
+
+        contentLabel.setStyle("-fx-font-size: 12px;");
+        info.getChildren().addAll(tagLabel, contentLabel);
+        result.setLeft(info);
+    
+        HBox options = new HBox(5);
+        options.setStyle("-fx-alignment: center-right;");
+
+        
 
         if ("Người dùng".equals(tag) && content instanceof UserDTO friend) {
             contentLabel.setText(friend.getUsername());
-        
-            //boolean isBlocked = friend.isBlocked();
             boolean isFriend = friendBUS.isFriend(user.getUserId(), friend.getUserId());
             boolean hasSentRequest = friendRequestBUS.hasSentRequest(user.getUserId(), friend.getUserId());
             boolean hasReceivedRequest = friendRequestBUS.hasReceivedRequest(friend.getUserId(), user.getUserId());
-            /*if (isBlocked) {
-                actionButton.setText("Hủy block");
-                actionButton.setOnAction(_ -> {
-                    // Xóa bản ghi block khỏi cơ sở dữ liệu
-                    boolean success = friendBUS.deleteFriend(user.getUserId(), friend.getUserId());
-                    if (success) {
-                        System.out.println("Đã hủy block " + friend.getName());
-                        actionButton.setText("Kết bạn"); // Chuyển trạng thái nút
-                    } else {
-                        System.out.println("Không thể hủy block.");
-                    }
-                });
-            } */
-            //else 
+            
+            MenuButton optionsButton = new MenuButton();
+            MenuItem chatOption = new MenuItem("Nhắn tin");
             if (isFriend) {
-                actionButton.setText("Nhắn tin");
-                actionButton.setOnAction(_ -> {
-                    System.out.println("Nhắn tin với " + friend.getUsername());
+                MenuItem groupOption = new MenuItem("Tạo nhóm");
+
+                groupOption.setOnAction(_ -> {
+                    CreateGroupPopup createGroupPopup = new CreateGroupPopup(user);
+                    createGroupPopup.show(friend.getUsername());
                 });
+
+                optionsButton.getItems().addAll(chatOption, groupOption);
+
             } else if (hasSentRequest) {
-                actionButton.setText("Hủy lời mời kết bạn");
+                MenuItem actionButton = new MenuItem("Hủy lời mời kết bạn");
+                
                 actionButton.setOnAction(_ -> {
                     List<FriendRequestDTO> sentRequests = friendRequestBUS.getSentRequestsByUserId(user.getUserId());
                     FriendRequestDTO targetRequest = sentRequests.stream()
@@ -179,19 +214,19 @@ public class FriendPage {
                         boolean success = friendRequestBUS.deleteFriendRequest(targetRequest.getRequestId());
                         if (success) {
                             actionButton.setText("Kết bạn");
-                            System.out.println("Đã hủy lời mời kết bạn với " + friend.getUsername());
-                        } else {
-                            System.out.println("Không thể hủy lời mời kết bạn.");
-                        }
+                        } 
                     }
                 });
+
+                optionsButton.getItems().addAll(chatOption, actionButton);
             } 
             else if (hasReceivedRequest) {
-                actionButton.setText("Đồng ý kết bạn");
+                MenuItem actionButton = new MenuItem("Đồng ý kết bạn");
+                
                 actionButton.setOnAction(_ -> {
                     List<FriendRequestDTO> sentRequests = friendRequestBUS.getSentRequestsByUserId(friend.getUserId());
                     FriendRequestDTO targetRequest = sentRequests.stream()
-                            .filter(request -> request.getReceiverId() == friend.getUserId() && "pending".equals(request.getStatus()))
+                            .filter(request -> request.getSenderId() == friend.getUserId() && "pending".equals(request.getStatus()))
                             .findFirst()
                             .orElse(null);
         
@@ -204,39 +239,62 @@ public class FriendPage {
                             System.out.println("Không thể đồng ý kết bạn.");
                         }
                     }
+
                 });
-            } else {
-                actionButton.setText("Kết bạn");
+                optionsButton.getItems().addAll(chatOption, actionButton);
+
+            } else if (!isFriend && !hasSentRequest && !hasReceivedRequest) {
+                MenuItem actionButton = new MenuItem("Kết bạn");
+                
                 actionButton.setOnAction(_ -> {
-                    FriendRequestDTO newRequest = new FriendRequestDTO(
-                            0, user.getUserId(), friend.getUserId(), "pending", java.time.LocalDateTime.now()
-                    );
-                    boolean success = friendRequestBUS.sendFriendRequest(newRequest);
+                    boolean success = sendFrReq(friend);
                     if (success) {
-                        actionButton.setText("Hủy lời mời kết bạn");
-                        System.out.println("Đã gửi lời mời kết bạn tới " + friend.getUsername());
-                    } else {
-                        System.out.println("Không thể gửi lời mời kết bạn.");
+                        actionButton.setText("Hủy lời mời kết bạn");     
                     }
                 });
+
+                optionsButton.getItems().addAll(chatOption, actionButton);
+
             }
+
+            optionsButton.setStyle("-fx-font-size: 12px;");
+            options.getChildren().add(optionsButton);
+        }
+
+        else if ("Nhóm".equals(tag) && content instanceof GroupDTO group) {
+            MenuButton optionsButton = new MenuButton();
+            MenuItem chatOption = new MenuItem("Nhắn tin");
+            MenuItem viewInfo = new MenuItem("Xem thông tin");
+            MenuItem leaveGroup = new MenuItem("Rời nhóm");
+            
+            viewInfo.setOnAction(_ -> {
+                GroupListView groupInfoView = new GroupListView(user);
+                groupInfoView.showGroupInfoPopup(group);
+            });
+
+            leaveGroup.setOnAction(_ -> {
+                GroupListView groupInfoView = new GroupListView(user);
+                groupInfoView.showConfirmLeavePopup(group);
+            });
+
+            optionsButton.getItems().addAll(chatOption, viewInfo, leaveGroup);
+            optionsButton.setStyle("-fx-font-size: 12px;");
+            options.getChildren().addAll(optionsButton);
+        
         }
         
-
-        contentLabel.setStyle("-fx-font-size: 12px;");
-        info.getChildren().addAll(tagLabel, contentLabel);
-        result.setLeft(info);
-
-        HBox options = new HBox(5);
-        options.setStyle("-fx-alignment: center-right;");
-        actionButton.setStyle("-fx-font-size: 11px;");
-        options.getChildren().add(actionButton);
 
         result.setRight(options);
         return result;
     }
     
     
+    private boolean sendFrReq(UserDTO friend) {
+        FriendRequestDTO newRequest = new FriendRequestDTO(
+                0, user.getUserId(), friend.getUserId(), "pending", java.time.LocalDateTime.now()
+        );
+        return friendRequestBUS.sendFriendRequest(newRequest);
+    }
 
     private void resetLeftMenu(VBox leftMenu) {
         leftMenu.getChildren().stream()

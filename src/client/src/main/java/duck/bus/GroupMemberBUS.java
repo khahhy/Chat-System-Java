@@ -34,6 +34,15 @@ public class GroupMemberBUS {
         }
     }
 
+    public boolean approveMember(int groupId, int userId) {
+        try {
+            return groupMemberDAO.approveMember(groupId, userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     // xóa thành viên 
     public boolean removeMember(int groupId, int userId) {
         try {
@@ -54,9 +63,27 @@ public class GroupMemberBUS {
         }
     }
 
-    public List<String> getAdminOrMem(int groupId, boolean isAdmin) {
+    public List<Integer> getAdminId(int groupId) {
         try {
-            return groupMemberDAO.getAdminOrMem(groupId, isAdmin);
+            return groupMemberDAO.getAdminID(groupId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>(); 
+        }
+    }
+    
+    public List<String> getAdmin(int groupId) {
+        try {
+            return groupMemberDAO.getAdmin(groupId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>(); 
+        }
+    }
+
+    public List<String> getMem(int groupId) {
+        try {
+            return groupMemberDAO.getMem(groupId);
         } catch (SQLException e) {
             e.printStackTrace();
             return new ArrayList<>(); 

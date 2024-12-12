@@ -69,4 +69,6 @@ public class UserDTO {
 
     public boolean isAdmin() { return isAdmin; }  
     public void setAdmin(boolean isAdmin) { this.isAdmin = isAdmin; }  
+
+    public String toString() { return username; }
 }
