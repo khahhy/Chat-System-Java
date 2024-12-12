@@ -8,6 +8,7 @@ import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -33,7 +34,6 @@ public class FriendListView {
         VBox content = new VBox(10);
         content.setStyle("-fx-padding: 10;");
 
-        // Lấy danh sách bạn bè từ cơ sở dữ liệu
         ObservableList<UserDTO> friends = FXCollections.observableArrayList();
 
         List<FriendDTO> friendDTOs = friendBUS.getFriendsByUserId(user.getUserId());
@@ -49,7 +49,8 @@ public class FriendListView {
         searchField.setStyle("-fx-font-size: 14px;");
         searchField.textProperty().addListener((_, _, newValue) -> {
             displayedFriends.setAll(friends.filtered(
-                friend -> friend.getUsername().toLowerCase().contains(newValue.toLowerCase())
+                friend -> friend.getUsername().toLowerCase().contains(newValue.toLowerCase()) ||
+                friend.getFullName().toLowerCase().contains(newValue.toLowerCase())
             ));
         });
 
@@ -81,7 +82,18 @@ public class FriendListView {
 
                     Text nameText = new Text(item.getUsername());
                     nameText.setStyle("-fx-font-size: 14px; -fx-fill: #333;");
-                    container.setLeft(nameText);
+                    
+                    String fullName = item.getFullName();
+                    if (fullName == null || fullName.isEmpty()) {
+                        fullName = "Chưa cập nhật";  
+                    }
+
+                    Text fullNameText = new Text(" [" + fullName + "]");
+                    fullNameText.setStyle("-fx-font-size: 12px; -fx-fill: #777;");
+                    HBox nameContainer = new HBox(5, nameText, fullNameText);
+                    nameContainer.setAlignment(Pos.CENTER_LEFT);
+
+                    container.setLeft(nameContainer);
 
                     HBox rightContainer = new HBox(10);
                     rightContainer.setStyle("-fx-alignment: center-right;");

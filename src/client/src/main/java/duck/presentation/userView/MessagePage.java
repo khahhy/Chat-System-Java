@@ -30,13 +30,7 @@ public class MessagePage {
         loadFriend();
     }    
 
-    // tạm để thể hiện ui
-    public class Friend {
-        private String name;
-
-        public Friend(String name) {this.name = name;}
-        public String getName() {return name;}
-    }
+    // tạm để thể hiện u
 
     public class Group {
         private String name;
@@ -54,11 +48,8 @@ public class MessagePage {
     }
 
     private final ObservableList<Object> chatData = FXCollections.observableArrayList(
-        new Friend("Trần Văn A"),
-        new Friend("khahhy"),
-        new Friend("duck"),
         new Group("học java", "duck", List.of("duck", "Nguyễn Văn B", "Võ Thị Nhung", "Trần Nghĩa")),
-        new Friend("Mom <3"),
+       
         new Group("phòng 1", "khahhy", List.of("Trần Thị C", "khahhy", "Nguyễn E"))
     );
 

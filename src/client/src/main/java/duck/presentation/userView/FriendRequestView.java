@@ -8,71 +8,43 @@ import javafx.scene.text.Text;
 
 import java.util.List;
 
-import duck.bus.FriendBUS;
 import duck.bus.FriendRequestBUS;
 import duck.bus.UserBUS;  // Import UserBUS
 import duck.dto.FriendRequestDTO;
 import duck.dto.UserDTO;
 
 public class FriendRequestView {
-
     private final UserDTO user;
-    private final ObservableList<FriendRequestDTO> friendRequests = FXCollections.observableArrayList();
+    private final UserBUS userBUS;
+    private final FriendRequestBUS friendReqBUS;
+    private final List<FriendRequestDTO> list_req;
+    private final ObservableList<FriendRequestDTO> friendRequests;
 
     public FriendRequestView(UserDTO user) {
         this.user = user;
-        loadFriendRequestsFromDatabase();
-    }
-
-    static class Request {
-        private final String name;
-        private final int requestId;
-        private final int senderId;
-        private final int receiverId;
-
-        public Request(String name, int requestId, int senderId, int receiverId) {
-            this.name = name;
-            this.requestId = requestId;
-            this.senderId = senderId;
-            this.receiverId = receiverId;
-        }
-
-        public String getName() { return name; }
-        public int getRequestId() { return requestId; }
-        public int getSenderId() { return senderId; }
-        public int getReceiverId() { return receiverId; }
+        this.userBUS = new UserBUS();
+        this.friendReqBUS = new FriendRequestBUS();
+        this.list_req = friendReqBUS.getReceivedRequestsByUserId(user.getUserId());
+        friendRequests = FXCollections.observableArrayList(list_req);
+        
     }
 
     public VBox getContent() {
         VBox content = new VBox(10);
         content.setStyle("-fx-padding: 10;");
     
-        // Giả sử lấy dữ liệu yêu cầu từ cơ sở dữ liệu
-        ObservableList<Request> displayedRequests = FXCollections.observableArrayList();
-    
-        // Thêm các yêu cầu vào danh sách hiển thị
-        for (FriendRequestDTO friendRequest : friendRequests) {
-            // Lấy tên người gửi từ UserBUS
-            UserBUS userBUS = new UserBUS();
-            UserDTO sender = userBUS.getUserById(friendRequest.getSenderId());
-            String senderName = sender != null ? sender.getFullName() : "Tên người gửi không có sẵn";
-            
-            // Thêm yêu cầu vào danh sách hiển thị
-            displayedRequests.add(new Request(senderName, friendRequest.getRequestId(), friendRequest.getSenderId(), friendRequest.getReceiverId()));
-        }
+        ObservableList<FriendRequestDTO> displayedRequests = FXCollections.observableArrayList();
     
         ComboBox<String> sortOptions = new ComboBox<>();
         sortOptions.getItems().addAll("A-Z", "Z-A");
         sortOptions.setValue("A-Z");
         sortOptions.setStyle("-fx-font-size: 14px;");
     
-        ListView<Request> requestList = new ListView<>(displayedRequests);
+        ListView<FriendRequestDTO> requestList = new ListView<>(friendRequests);
         VBox.setVgrow(requestList, Priority.ALWAYS);
     
-        // Tùy chỉnh cách hiển thị các yêu cầu trong ListView
         requestList.setCellFactory(_ -> new ListCell<>() {
-            @Override
-            protected void updateItem(Request item, boolean empty) {
+            protected void updateItem(FriendRequestDTO item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setGraphic(null);
@@ -80,7 +52,7 @@ public class FriendRequestView {
                     BorderPane container = new BorderPane();
                     container.setStyle("-fx-background-color: #E8E8E8; -fx-padding: 10;");
     
-                    Text nameText = new Text(item.getName());
+                    Text nameText = new Text(userBUS.getUserById(item.getSenderId()).getUsername());
                     nameText.setStyle("-fx-font-size: 14px; -fx-fill: #333;");
                     container.setLeft(nameText);
     
@@ -125,35 +97,14 @@ public class FriendRequestView {
         sortOptions.setOnAction(_ -> {
             String sortChoice = sortOptions.getValue();
             if ("A-Z".equals(sortChoice)) {
-                displayedRequests.sort((f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
+                displayedRequests.sort((f1, f2) -> userBUS.getUserById(f1.getSenderId()).getUsername().compareToIgnoreCase(userBUS.getUserById(f2.getSenderId()).getUsername()));
             } else if ("Z-A".equals(sortChoice)) {
-                displayedRequests.sort((f1, f2) -> f2.getName().compareToIgnoreCase(f1.getName()));
+                displayedRequests.sort((f1, f2) -> userBUS.getUserById(f2.getSenderId()).getUsername().compareToIgnoreCase(userBUS.getUserById(f1.getSenderId()).getUsername()));
             }
         });
     
         content.getChildren().addAll(sortOptions, requestList);
         return content;
-    }
-
-    private void loadFriendRequestsFromDatabase() {
-        // Tạo đối tượng FriendRequestBUS
-        FriendRequestBUS friendRequestBUS = new FriendRequestBUS();
-        
-        // Gọi phương thức không tĩnh thông qua đối tượng
-        List<FriendRequestDTO> friendRequestsFromDB = friendRequestBUS.getFriendRequestsByReceiverId(user.getUserId());
-        
-        // Lọc chỉ những yêu cầu có status là "pending"
-        friendRequests.clear(); // Xóa danh sách hiện tại
-        for (FriendRequestDTO request : friendRequestsFromDB) {
-            if ("pending".equals(request.getStatus())) {
-                friendRequests.add(request); // Thêm yêu cầu nếu có status là "pending"
-            }
-        }
-        
-        // Hiển thị thông tin về các yêu cầu kết bạn trong console (nếu cần)
-        for (FriendRequestDTO request : friendRequests) {
-            System.out.println("Yêu cầu kết bạn từ " + request.getSenderId());
-        }
     }
     
 }
