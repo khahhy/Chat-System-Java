@@ -2,6 +2,7 @@ package duck.presentation.userView;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
@@ -34,7 +35,17 @@ public class FriendRequestView {
         content.setStyle("-fx-padding: 10;");
     
         ObservableList<FriendRequestDTO> displayedRequests = FXCollections.observableArrayList();
-    
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("Tìm lời mời...");
+        searchField.setStyle("-fx-font-size: 14px;");
+        searchField.textProperty().addListener((_, _, newValue) -> {
+            displayedRequests.setAll(friendRequests.filtered(
+                friendRequests -> userBUS.getUserById(friendRequests.getSenderId()).getUsername().toLowerCase().contains(newValue.toLowerCase()) ||
+                userBUS.getUserById(friendRequests.getSenderId()).getUsername().toLowerCase().contains(newValue.toLowerCase())
+            ));
+        });
+
         ComboBox<String> sortOptions = new ComboBox<>();
         sortOptions.getItems().addAll("A-Z", "Z-A");
         sortOptions.setValue("A-Z");
@@ -51,10 +62,21 @@ public class FriendRequestView {
                 } else {
                     BorderPane container = new BorderPane();
                     container.setStyle("-fx-background-color: #E8E8E8; -fx-padding: 10;");
-    
+
                     Text nameText = new Text(userBUS.getUserById(item.getSenderId()).getUsername());
                     nameText.setStyle("-fx-font-size: 14px; -fx-fill: #333;");
-                    container.setLeft(nameText);
+                    
+                    String fullName = userBUS.getUserById(item.getSenderId()).getFullName();
+                    if (fullName == null || fullName.isEmpty()) {
+                        fullName = "Chưa cập nhật";  
+                    }
+
+                    Text fullNameText = new Text(" [" + fullName + "]");
+                    fullNameText.setStyle("-fx-font-size: 12px; -fx-fill: #777;");
+                    HBox nameContainer = new HBox(5, nameText, fullNameText);
+                    nameContainer.setAlignment(Pos.CENTER_LEFT);
+
+                    container.setLeft(nameContainer);
     
                     MenuButton optionsButton = new MenuButton();
                     MenuItem accept = new MenuItem("Chấp nhận");
@@ -103,7 +125,7 @@ public class FriendRequestView {
             }
         });
     
-        content.getChildren().addAll(sortOptions, requestList);
+        content.getChildren().addAll( searchField, sortOptions, requestList);
         return content;
     }
     

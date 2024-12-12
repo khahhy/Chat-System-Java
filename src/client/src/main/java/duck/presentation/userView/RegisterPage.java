@@ -62,6 +62,12 @@ public class RegisterPage extends VBox {
                 return;
             }
 
+            UserBUS temp = new UserBUS();
+            if (temp.checkExistEmail(email)) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Email đã tồn tại");
+                alert.showAndWait();
+                return;
+            }
             String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
             // Tạo đối tượng UserDTO
             UserDTO userDTO = new UserDTO(
