@@ -1,6 +1,9 @@
 package duck.presentation.userView;
 
 import duck.dto.UserDTO;
+
+import org.mindrot.jbcrypt.BCrypt;
+
 import duck.dao.UserDAO;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -93,9 +96,10 @@ public class PopupEditPw {
             }
 
             // Cập nhật mật khẩu mới
-            boolean isUpdated = userDAO.updatePassword(user.getUserId(), newPassword);
-
+            String hashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+            boolean isUpdated = userDAO.updatePassword(user.getUserId(), hashedPassword);
             if (isUpdated) {
+                user.setPassword(hashedPassword);
                 errorLabel.setText("Mật khẩu đã được thay đổi thành công.");
                 errorLabel.setTextFill(Color.GREEN);
                 errorLabel.setVisible(true);

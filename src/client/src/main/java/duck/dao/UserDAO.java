@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 public class UserDAO {
 
     // danh sách tất cả người dùng, lọc theo name, username, online, sắp xếp 
@@ -274,8 +276,8 @@ public class UserDAO {
             ResultSet rs = statement.executeQuery();
             
             if (rs.next()) {
-                String currentPassword = rs.getString("password");
-                return currentPassword.equals(oldPassword);  // So sánh mật khẩu cũ
+                String currentHashPassword = rs.getString("password"); 
+                return BCrypt.checkpw(oldPassword, currentHashPassword); // So sánh mật khẩu cũ
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -286,7 +288,6 @@ public class UserDAO {
     // Phương thức cập nhật mật khẩu mới của người dùng
     public boolean updatePassword(int userId, String newPassword) {
         String updateQuery = "UPDATE users SET password = ? WHERE user_id = ?";
-        
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
             preparedStatement.setString(1, newPassword);

@@ -2,6 +2,9 @@ package duck.presentation;
 
 import javax.mail.*;
 import javax.mail.internet.*;
+
+import org.mindrot.jbcrypt.BCrypt;
+
 import java.util.Properties;
 import java.util.Random;
 
@@ -47,14 +50,14 @@ public class Email {
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
             message.setSubject("Mật khẩu mới của bạn");
             message.setText("Mật khẩu mới của bạn là: " + verificationCode);
-
+            String hashedPassword = BCrypt.hashpw(verificationCode, BCrypt.gensalt());
         // Gửi email
             Transport.send(message);
             System.out.println("Email đã được gửi thành công!");
 
         // Cập nhật mật khẩu trong cơ sở dữ liệu
             UserDAO userDAO = new UserDAO();
-            boolean isPasswordUpdated = userDAO.updatePasswordByEmail(toEmail, verificationCode);
+            boolean isPasswordUpdated = userDAO.updatePasswordByEmail(toEmail, hashedPassword);
 
             return isPasswordUpdated;  // Trả về true nếu cập nhật mật khẩu thành công
 
