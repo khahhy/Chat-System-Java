@@ -23,6 +23,15 @@ public class GroupBUS {
         }
     }
 
+    public GroupDTO getGroupById(int group_id) {
+        try {
+            return groupDAO.getGroupById(group_id);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public int addGroup(GroupDTO group) {
         try {
             return groupDAO.addGroup(group);

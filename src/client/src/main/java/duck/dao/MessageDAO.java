@@ -1,10 +1,11 @@
 package duck.dao;
 
+import duck.dto.GroupDTO;
 import duck.dto.MessageDTO;
 import duck.dto.UserDTO;
 
 import java.sql.*;
-
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,8 +27,8 @@ public class MessageDAO {
                 messages.add(new MessageDTO(
                         rs.getInt("message_id"),
                         rs.getInt("sender_id"),
-                        rs.getInt("receiver_id"),
-                        rs.getInt("group_id"),
+                        rs.getObject("receiver_id", Integer.class),
+                        rs.getObject("group_id", Integer.class),
                         rs.getString("content"),
                         rs.getTimestamp("timestamp").toLocalDateTime(),
                         rs.getBoolean("is_encrypted")
@@ -50,8 +51,8 @@ public class MessageDAO {
                 messages.add(new MessageDTO(
                         rs.getInt("message_id"),
                         rs.getInt("sender_id"),
-                        rs.getInt("receiver_id"),
-                        rs.getInt("group_id"),
+                        rs.getObject("receiver_id", Integer.class),
+                        rs.getObject("group_id", Integer.class),
                         rs.getString("content"),
                         rs.getTimestamp("timestamp").toLocalDateTime(),
                         rs.getBoolean("is_encrypted")
@@ -65,19 +66,25 @@ public class MessageDAO {
         String query = "INSERT INTO messages (sender_id, receiver_id, group_id, content, timestamp, is_encrypted) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
+    
             stmt.setInt(1, message.getSenderId());
-            stmt.setInt(2, message.getReceiverId());
-            if (message.getGroupId()==0) {
-                stmt.setNull(3, Types.INTEGER);
+    
+            if (message.getGroupId() != null) {
+                stmt.setNull(2, java.sql.Types.INTEGER); 
+                stmt.setInt(3, message.getGroupId());     
             } else {
-                stmt.setInt(3, message.getGroupId());
+                stmt.setInt(2, message.getReceiverId()); 
+                stmt.setNull(3, java.sql.Types.INTEGER);  
             }
+    
             stmt.setString(4, message.getContent());
             stmt.setTimestamp(5, Timestamp.valueOf(message.getTimestamp()));
             stmt.setBoolean(6, message.isEncrypted());
+    
             return stmt.executeUpdate() > 0;
         }
     }
+    
 
     public boolean deleteMessage(int messageId) throws SQLException {
         String query = "DELETE FROM messages WHERE message_id = ?";
@@ -113,8 +120,8 @@ public class MessageDAO {
                 messages.add(new MessageDTO(
                         rs.getInt("message_id"),
                         rs.getInt("sender_id"),
-                        rs.getInt("receiver_id"),
-                        rs.getInt("group_id"),
+                        rs.getObject("receiver_id", Integer.class),
+                        rs.getObject("group_id", Integer.class),
                         rs.getString("content"),
                         rs.getTimestamp("timestamp").toLocalDateTime(),
                         rs.getBoolean("is_encrypted")
@@ -159,7 +166,7 @@ public class MessageDAO {
                             userRs.getString("username"),
                             userRs.getString("full_name"),
                             userRs.getString("address"),
-                            userRs.getTimestamp("date_of_birth").toLocalDateTime(),
+                            userRs.getTimestamp("date_of_birth") != null ? rs.getTimestamp("date_of_birth").toLocalDateTime() : null,
                             userRs.getString("gender").charAt(0),
                             userRs.getString("email"),
                             userRs.getString("password"),
@@ -173,6 +180,84 @@ public class MessageDAO {
             }
         }
         return friends;
+    }
+
+    public List<GroupDTO> getGroupsFromMessages(int userId) throws SQLException {
+        List<GroupDTO> groups = new ArrayList<>();
+        String query = "SELECT DISTINCT m.group_id, g.group_name, g.created_at " +
+                   "FROM messages m " +
+                   "JOIN groups g ON m.group_id = g.group_id " + 
+                   "WHERE (m.sender_id = ? OR m.receiver_id = ?) AND m.group_id IS NOT NULL";
+    
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, userId);
+        
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int groupId = rs.getInt("group_id");
+                String groupName = rs.getString("group_name");
+                LocalDateTime createdAt = rs.getTimestamp("created_at").toLocalDateTime();
+            
+                GroupDTO group = new GroupDTO(groupId, groupName, createdAt);
+                groups.add(group);
+            }
+        }
+        return groups;
+    }
+
+    public MessageDTO getLastMessageBetweenUsers(int userId1, int userId2) throws SQLException {
+        String query = "SELECT * FROM messages " +
+                       "WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) " +
+                       "ORDER BY timestamp DESC LIMIT 1";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId1);
+            stmt.setInt(2, userId2);
+            stmt.setInt(3, userId2);
+            stmt.setInt(4, userId1);
+            
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int messageId = rs.getInt("message_id");
+                int senderId = rs.getInt("sender_id");
+                Integer receiverId = rs.getObject("receiver_id", Integer.class); 
+                Integer groupId = rs.getObject("group_id", Integer.class);  
+                String content = rs.getString("content");
+                LocalDateTime timestamp = rs.getTimestamp("timestamp").toLocalDateTime();
+                boolean isEncrypted = rs.getBoolean("is_encrypted");  
+                
+                return new MessageDTO(messageId, senderId, receiverId, groupId, content, timestamp, isEncrypted);
+            }
+        }
+        return null;
+    }
+    
+    public MessageDTO getLastMessageInGroup(int groupId) throws SQLException {
+        String query = "SELECT * FROM messages " +
+                       "WHERE group_id = ? " +
+                       "ORDER BY timestamp DESC LIMIT 1";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setObject(1, groupId, java.sql.Types.INTEGER);
+            
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int messageId = rs.getInt("message_id");
+                int senderId = rs.getInt("sender_id");
+                Integer receiverId = rs.getObject("receiver_id", Integer.class);  
+                Integer groupIdResult = rs.getObject("group_id", Integer.class);
+                String content = rs.getString("content");
+                LocalDateTime timestamp = rs.getTimestamp("timestamp").toLocalDateTime();
+                boolean isEncrypted = rs.getBoolean("is_encrypted");  
+                
+                return new MessageDTO(messageId, senderId, receiverId, groupIdResult, content, timestamp, isEncrypted);
+            }
+        }
+        return null;
     }
     
 }

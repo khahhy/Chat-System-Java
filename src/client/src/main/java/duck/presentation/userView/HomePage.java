@@ -36,7 +36,7 @@ public class HomePage {
         VBox sidebar = createSidebar(root);
         root.setLeft(sidebar);
 
-        root.setCenter(new MessagePage(user).getContent());
+        root.setCenter(new MessagePage(user, null, null).getContent());
 
         return root;
     }
@@ -82,10 +82,10 @@ public class HomePage {
                     new PopupProfile(root, user).showPopup();
                     break;
                 case "message":
-                    root.setCenter(new MessagePage(user).getContent());
+                    root.setCenter(new MessagePage(user, null, null).getContent());
                     break;
                 case "friend":
-                    root.setCenter(new FriendPage(user).getContent());
+                    root.setCenter(new FriendPage(user, root).getContent());
                     break;
                 case "settings":
                     footer_Dropdown(button, root);

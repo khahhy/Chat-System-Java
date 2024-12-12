@@ -3,6 +3,7 @@ package duck.bus;
 import duck.dao.MessageDAO;
 import duck.dto.MessageDTO;
 import duck.dto.UserDTO;
+import duck.dto.GroupDTO;
 import java.sql.SQLException;
 
 import java.util.ArrayList;
@@ -77,6 +78,33 @@ public class MessageBUS {
         } catch (SQLException e) {
             e.printStackTrace();
             return new ArrayList<>();  
+        }
+    }
+
+    public List<GroupDTO> getGroupsFromMessage(int userId) {
+        try {
+            return messageDAO.getGroupsFromMessages(userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>();  
+        }
+    }
+
+    public MessageDTO getLastMessagesUsers(int senderId, int receiverId) {
+        try {
+            return messageDAO.getLastMessageBetweenUsers(senderId, receiverId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public MessageDTO getLastMessagesGroup(int group_id) {
+        try {
+            return messageDAO.getLastMessageInGroup(group_id);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

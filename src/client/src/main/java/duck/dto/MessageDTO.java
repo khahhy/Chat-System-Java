@@ -5,13 +5,13 @@ import java.time.LocalDateTime;
 public class MessageDTO {
     private int messageId;
     private int senderId;
-    private int receiverId;
-    private int groupId;
+    private Integer receiverId;
+    private Integer groupId;
     private String content;
     private LocalDateTime timestamp;
     private boolean isEncrypted;
 
-    public MessageDTO(int messageId, int senderId, int receiverId, int groupId, String content, LocalDateTime timestamp, boolean isEncrypted) {
+    public MessageDTO(int messageId, int senderId, Integer receiverId, Integer groupId, String content, LocalDateTime timestamp, boolean isEncrypted) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
@@ -21,7 +21,7 @@ public class MessageDTO {
         this.isEncrypted = isEncrypted;
     }
 
-    public MessageDTO(int senderId, int receiverId, String content) {
+    public MessageDTO(int senderId, Integer receiverId, String content) {
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.content = content;
@@ -34,11 +34,11 @@ public class MessageDTO {
     public int getSenderId() { return senderId; }
     public void setSenderId(int senderId) { this.senderId = senderId; }
 
-    public int getReceiverId() { return receiverId; }
-    public void setReceiverId(int receiverId) { this.receiverId = receiverId; }
+    public Integer getReceiverId() { return receiverId; }
+    public void setReceiverId(Integer receiverId) { this.receiverId = receiverId; }
 
-    public int getGroupId() { return groupId; }
-    public void setGroupId(int groupId) { this.groupId = groupId; }
+    public Integer getGroupId() { return groupId; }
+    public void setGroupId(Integer groupId) { this.groupId = groupId; }
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }

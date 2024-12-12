@@ -1,11 +1,13 @@
 package duck.presentation.userView;
-
+import duck.presentation.userView.MessagePage;
 import java.util.List;
 
 import duck.bus.FriendBUS;
 import duck.bus.UserBUS;
 import duck.dto.FriendDTO;
 import duck.dto.UserDTO;
+
+import javafx.animation.PauseTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
@@ -17,13 +19,16 @@ import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 
 public class FriendListView {
     private final UserBUS userBUS;
     private final FriendBUS friendBUS;
     private final UserDTO user;
-    
-    public FriendListView(UserDTO user) {
+    private final BorderPane parent;
+    public FriendListView(UserDTO user, BorderPane root) {
+        parent = root;
+
         this.userBUS = new UserBUS();
         this.friendBUS = new FriendBUS();
         this.user = user;
@@ -43,15 +48,18 @@ public class FriendListView {
         }
 
         ObservableList<UserDTO> displayedFriends = FXCollections.observableArrayList(friends);
-    
+        PauseTransition pause = new PauseTransition(Duration.millis(300));
         TextField searchField = new TextField();
         searchField.setPromptText("Tìm bạn...");
         searchField.setStyle("-fx-font-size: 14px;");
         searchField.textProperty().addListener((_, _, newValue) -> {
-            displayedFriends.setAll(friends.filtered(
-                friend -> friend.getUsername().toLowerCase().contains(newValue.toLowerCase()) ||
-                friend.getFullName().toLowerCase().contains(newValue.toLowerCase())
-            ));
+            pause.setOnFinished(_ -> {
+                displayedFriends.setAll(friends.filtered(
+                    friend -> friend.getUsername().toLowerCase().contains(newValue.toLowerCase()) ||
+                    friend.getFullName().toLowerCase().contains(newValue.toLowerCase())
+                ));
+            });
+            pause.playFromStart();
         });
 
         HBox controls = new HBox(10);
@@ -113,6 +121,9 @@ public class FriendListView {
                     optionsButton.setStyle("-fx-font-size: 14px;");
 
                     viewInfo.setOnAction(_ -> showFriendInfoPopup(item));
+                    
+                    sendMessage.setOnAction(_ -> parent.setCenter(new MessagePage(user, item, null).getContent()));
+                    
                     removeFriend.setOnAction(_ -> {
                         boolean confirmDelete = confirmDeleteDialog(item.getUsername());
                         if (confirmDelete) {

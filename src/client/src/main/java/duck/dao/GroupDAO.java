@@ -27,6 +27,26 @@ public class GroupDAO {
         return groups;
     }
 
+    public GroupDTO getGroupById(int groupId) throws SQLException {
+        GroupDTO group = null;
+        String query = "SELECT * FROM groups WHERE group_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, groupId);  // Gán giá trị groupId vào câu truy vấn
+            
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                group = new GroupDTO(
+                        rs.getInt("group_id"),
+                        rs.getString("group_name"),
+                        rs.getTimestamp("created_at").toLocalDateTime()
+                );
+            }
+        }
+        return group;
+    }
+    
 
     public int addGroup(GroupDTO group) throws SQLException {
         String query = "INSERT INTO groups (group_name, created_at) VALUES (?, ?) RETURNING group_id";

@@ -1,11 +1,14 @@
 package duck.presentation.userView;
 
+import javafx.animation.PauseTransition;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
+import javafx.util.Duration;
 
 import java.util.List;
 
@@ -34,16 +37,21 @@ public class FriendRequestView {
         VBox content = new VBox(10);
         content.setStyle("-fx-padding: 10;");
     
-        ObservableList<FriendRequestDTO> displayedRequests = FXCollections.observableArrayList();
+        ObservableList<FriendRequestDTO> displayedRequests = FXCollections.observableArrayList(friendRequests);
         
+        PauseTransition pause = new PauseTransition(Duration.millis(300));
+
         TextField searchField = new TextField();
         searchField.setPromptText("Tìm lời mời...");
         searchField.setStyle("-fx-font-size: 14px;");
         searchField.textProperty().addListener((_, _, newValue) -> {
-            displayedRequests.setAll(friendRequests.filtered(
-                friendRequests -> userBUS.getUserById(friendRequests.getSenderId()).getUsername().toLowerCase().contains(newValue.toLowerCase()) ||
-                userBUS.getUserById(friendRequests.getSenderId()).getUsername().toLowerCase().contains(newValue.toLowerCase())
-            ));
+            pause.setOnFinished(_ -> {
+                displayedRequests.setAll(friendRequests.filtered(
+                    friendRequests -> userBUS.getUserById(friendRequests.getSenderId()).getUsername().toLowerCase().contains(newValue.toLowerCase()) ||
+                    userBUS.getUserById(friendRequests.getSenderId()).getFullName().toLowerCase().contains(newValue.toLowerCase())
+                ));
+            });
+            pause.playFromStart();
         });
 
         ComboBox<String> sortOptions = new ComboBox<>();
@@ -51,7 +59,7 @@ public class FriendRequestView {
         sortOptions.setValue("A-Z");
         sortOptions.setStyle("-fx-font-size: 14px;");
     
-        ListView<FriendRequestDTO> requestList = new ListView<>(friendRequests);
+        ListView<FriendRequestDTO> requestList = new ListView<>(displayedRequests);
         VBox.setVgrow(requestList, Priority.ALWAYS);
     
         requestList.setCellFactory(_ -> new ListCell<>() {

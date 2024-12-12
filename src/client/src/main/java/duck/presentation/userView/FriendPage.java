@@ -32,8 +32,10 @@ public class FriendPage {
     private final FilteredList<UserDTO> filteredList;
     private final FilteredList<GroupDTO> filteredGroupList;
     private final ObservableList<GroupDTO> groups_list;
+    private final BorderPane parent;
+    public FriendPage(UserDTO user, BorderPane root) {
+        parent = root;
 
-    public FriendPage(UserDTO user) {
         this.userBUS = new UserBUS();
         this.friendBUS = new FriendBUS();
         this.groupBUS = new GroupBUS();
@@ -138,7 +140,7 @@ public class FriendPage {
         Button friendListButton = new Button("Danh sách bạn bè");
         friendListButton.setPrefWidth(200);
         friendListButton.setStyle("-fx-font-size: 14px;");
-        friendListButton.setOnAction(_ -> root.setCenter(new FriendListView(user).getContent()));
+        friendListButton.setOnAction(_ -> root.setCenter(new FriendListView(user, parent).getContent()));
     
         Button groupListButton = new Button("Danh sách nhóm");
         groupListButton.setPrefWidth(200);
@@ -267,6 +269,10 @@ public class FriendPage {
             MenuItem viewInfo = new MenuItem("Xem thông tin");
             MenuItem leaveGroup = new MenuItem("Rời nhóm");
             
+            chatOption.setOnAction(_ -> {
+                parent.setCenter(new MessagePage(user, null, group).getContent());
+            });
+
             viewInfo.setOnAction(_ -> {
                 GroupListView groupInfoView = new GroupListView(user);
                 groupInfoView.showGroupInfoPopup(group);

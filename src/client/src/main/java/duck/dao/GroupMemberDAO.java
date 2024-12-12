@@ -87,7 +87,7 @@ public class GroupMemberDAO {
 
     public List<String> getAdmin(int groupId) throws SQLException {
         List<String> mems = new ArrayList<>();
-        String query = "SELECT gm.user_id, u.full_name, gm.joined_at " +
+        String query = "SELECT gm.user_id, u.username, gm.joined_at " +
                    "FROM GroupMembers gm " +
                    "JOIN users u ON gm.user_id = u.user_id " +
                    "WHERE gm.group_id = ? AND gm.is_admin = true";
@@ -97,7 +97,7 @@ public class GroupMemberDAO {
             stmt.setInt(1, groupId);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                mems.add(rs.getString("full_name"));
+                mems.add(rs.getString("username"));
             }
         }
         return mems;
@@ -123,7 +123,7 @@ public class GroupMemberDAO {
 
     public List<String> getMem(int groupId) throws SQLException {
         List<String> mems = new ArrayList<>();
-        String query = "SELECT gm.user_id, u.full_name, gm.joined_at " +
+        String query = "SELECT gm.user_id, u.username, gm.joined_at " +
                    "FROM GroupMembers gm " +
                    "JOIN users u ON gm.user_id = u.user_id " +
                    "WHERE gm.group_id = ? AND gm.is_admin = false AND gm.is_approved = true";
@@ -133,7 +133,7 @@ public class GroupMemberDAO {
             stmt.setInt(1, groupId);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                mems.add(rs.getString("full_name"));
+                mems.add(rs.getString("username"));
             }
         }
         return mems;

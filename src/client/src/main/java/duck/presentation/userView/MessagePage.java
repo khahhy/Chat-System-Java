@@ -1,22 +1,29 @@
 package duck.presentation.userView;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 import org.postgresql.translation.messages_bg;
 
+import duck.dto.GroupDTO;
 import duck.dto.MessageDTO;
 import duck.bus.MessageBUS;
 import duck.dao.MessageDAO;
 import duck.bus.FriendBUS;
+import duck.bus.GroupBUS;
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;   
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -24,65 +31,91 @@ import javafx.stage.Stage;
 public class MessagePage {
     private final UserDTO user;
     private UserDTO opponent;
-    public MessagePage(UserDTO user) {
-        this.user = user;
-        this.opponent = user;
-        loadFriend();
-    }    
+    private GroupDTO mainGroup;
+    private UserBUS userBUS;
+    private MessageBUS messageBUS;
+    private GroupBUS groupBUS;
+    VBox chatList;
+    VBox chatContent;
+    VBox userInfo;
 
-    // tạm để thể hiện u
+    private final ObservableList<Object> chatData;
 
-    public class Group {
-        private String name;
-        private String admin;
-        private List<String> members;
-
-        public Group(String name, String admin, List<String> members) {
-            this.name = name; this.admin = admin; this.members = members;
-        }
-        public String getName() {return name;}
-        public String getAdmin() {return admin;}
-        public List<String> getMembers() {return members;}
-        public void setName(String n) {name = n;}
-        public void setAdmin(String n) {admin = n;}
-    }
-
-    private final ObservableList<Object> chatData = FXCollections.observableArrayList(
-        new Group("học java", "duck", List.of("duck", "Nguyễn Văn B", "Võ Thị Nhung", "Trần Nghĩa")),
-       
-        new Group("phòng 1", "khahhy", List.of("Trần Thị C", "khahhy", "Nguyễn E"))
-    );
-
-    private void loadFriend() {
-        MessageBUS messageBUS = new MessageBUS(); 
-        List<UserDTO> friends = messageBUS.getFriendsFromMessage(user.getUserId()); 
-        for (UserDTO otherUser : friends) {
-            if (otherUser.getUserId() != user.getUserId()) { 
-                chatData.add(otherUser);
-            }
-        }
-    }
     
+    public MessagePage(UserDTO user, UserDTO opponent, GroupDTO gr) {
+        this.user = user;
+        this.opponent = opponent;
+        this.mainGroup = gr;
+        this.userBUS = new UserBUS();
+        this.messageBUS = new MessageBUS();
+        this.groupBUS = new GroupBUS();
 
-    private VBox userInfoContainer = new VBox(10);
-    private VBox chatContentContainer = new VBox(10);
+        chatData = FXCollections.observableArrayList();
+        loadChatData();
+
+        this.chatContent = new VBox();
+        this.chatList = new VBox();   
+        this.userInfo = new VBox();
+        
+        
+
+    }    
 
     public BorderPane getContent() {
         BorderPane root = new BorderPane();
 
-        // trái: danh sách chat + thanh tìm kiếm
-        VBox chatList = createChatList();
+        this.chatContent = createChatContent();  
+        this.chatList = createChatList();
+        
+        if (opponent == null && mainGroup != null) 
+            this.userInfo = createGroupInfo();
+            
+        if (mainGroup == null && opponent != null) 
+            this.userInfo = createUserInfo(); 
+
         root.setLeft(chatList);
-
-        // trung tâm: khung tin nhắn
-        VBox chatContent = createChatContent();
         root.setCenter(chatContent);
-
-        // phải: thông tin 
-        VBox userInfo = createUserInfo();
         root.setRight(userInfo);
         return root;
     }
+    
+    private void loadChatData() {
+        MessageBUS messageBUS = new MessageBUS(); 
+        List<UserDTO> friends = messageBUS.getFriendsFromMessage(user.getUserId()); 
+        List<GroupDTO> groups = messageBUS.getGroupsFromMessage(user.getUserId());
+        
+        List<MessageDTO> chatParticipants = new ArrayList<>();
+        for (UserDTO otherUser : friends) {
+            MessageDTO lastMessage = messageBUS.getLastMessagesUsers(user.getUserId(), otherUser.getUserId());
+            if (lastMessage != null) {
+                chatParticipants.add(lastMessage);            
+            }
+        }
+
+        for (GroupDTO group : groups) {
+            MessageDTO lastMessage = messageBUS.getLastMessagesGroup(group.getGroupId());
+            if (lastMessage != null) {
+                chatParticipants.add(lastMessage);
+            }
+        }
+
+        chatParticipants.sort((cp1, cp2) -> cp2.getTimestamp().compareTo(cp1.getTimestamp()));
+        
+        for (MessageDTO cp : chatParticipants) {
+            if (cp.getGroupId() == null) {
+                if (cp.getSenderId() == user.getUserId()) {
+                    chatData.add((UserDTO) userBUS.getUserById(cp.getReceiverId()));
+                } else {
+                    chatData.add((UserDTO) userBUS.getUserById(cp.getSenderId()));
+                }
+                
+            } else if (cp.getReceiverId() == null) {
+                chatData.add((GroupDTO) groupBUS.getGroupById(cp.getGroupId()));
+            }
+        }
+    }
+
+    
 
     private VBox createChatList() {
         VBox chatBox = new VBox(10);
@@ -94,13 +127,12 @@ public class MessagePage {
         ListView<Object> chatList = new ListView<>();
         for (Object item : chatData) {
             if (item instanceof UserDTO) {
-                chatList.getItems().add(((UserDTO) item).getFullName());
-            } else if (item instanceof Group) {
-                chatList.getItems().add(((Group) item).getName());
+                chatList.getItems().add(((UserDTO) item).getUsername());
+            } else if (item instanceof GroupDTO) {
+                chatList.getItems().add(((GroupDTO) item).getGroupName());
             }
         }
         chatList.setCellFactory(_ -> new ListCell<>() {
-            @Override
             protected void updateItem(Object item, boolean empty) {
                 super.updateItem(item, empty);
     
@@ -119,7 +151,7 @@ public class MessagePage {
             }
         });
         chatList.getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> {
-            updateUserInfo(newValue); 
+            
             chatList.refresh();
         });
 
@@ -133,12 +165,62 @@ public class MessagePage {
     }
 
     private VBox createChatContent() {
-        VBox chatContent = new VBox(10);
-        chatContentContainer.setStyle("-fx-padding: 10;");
+        VBox chatContentBox = new VBox(10);
+        chatContentBox.setStyle("-fx-padding: 10;");
+        
+        ScrollPane messagePane = new ScrollPane();
+        VBox messageContainer = new VBox(10); // Chứa các tin nhắn
+        messageContainer.setStyle("-fx-padding: 10;");
+        
+        messagePane.setContent(messageContainer);
+        messagePane.setFitToWidth(true);
+        VBox.setVgrow(messagePane, Priority.ALWAYS);
+
+        if (opponent != null) {
+            List<MessageDTO> oldChat = messageBUS.getMessagesBetweenUsers(user.getUserId(), opponent.getUserId());
+            for (MessageDTO chat : oldChat) 
+                addMessage(messageContainer, chat);
+        }
+
+        if (mainGroup != null) {
+            List<MessageDTO> oldChat = messageBUS.getMessagesInGroup(mainGroup.getGroupId());
+            for (MessageDTO chat : oldChat) 
+                addMessage(messageContainer, chat);
+        }
+
         
 
-        return chatContentContainer;
+        TextField inputField = new TextField();
+        inputField.setPromptText("Nhập tin nhắn...");
+        inputField.setStyle("-fx-font-size: 14px;");
+        inputField.setOnAction(_ -> {
+            String message = inputField.getText();
+            if (!message.isEmpty()) {
+                if (opponent != null) {
+                    MessageDTO newMessage = new MessageDTO(0, user.getUserId(), opponent.getUserId(), null, message, LocalDateTime.now(), false);
+                    if (messageBUS.addMessage(newMessage)) {
+                        addMessage(messageContainer, newMessage);
+                        inputField.clear();
+                        messagePane.setVvalue(1.0); 
+                    }
+                }
+
+                if (mainGroup != null) {
+                    MessageDTO newMessage = new MessageDTO(0, user.getUserId(), null, mainGroup.getGroupId(), message, LocalDateTime.now(), false);
+                    if (messageBUS.addMessage(newMessage)) {
+                        addMessage(messageContainer, newMessage);
+                        inputField.clear();
+                        messagePane.setVvalue(1.0); 
+                    }
+                }
+            }
+        });
+        inputField.prefWidthProperty().bind(chatContentBox.widthProperty());
+        HBox inputArea = new HBox(10, inputField);
+        chatContentBox.getChildren().addAll(messagePane, inputArea);
+        return chatContentBox;
     }
+
 
     private void addMessage(VBox container, MessageDTO message) {
         HBox messageBox = new HBox();
@@ -152,8 +234,7 @@ public class MessagePage {
         MenuButton optionsMenu = new MenuButton();
         MenuItem deleteItem = new MenuItem("Xóa tin nhắn");
         deleteItem.setOnAction(_ -> {
-            MessageBUS temp = new MessageBUS();
-            if (temp.deleteMessage(message.getMessageId())) {
+            if (messageBUS.deleteMessage(message.getMessageId())) {
                 container.getChildren().remove(messageBox);
             }
         });
@@ -172,71 +253,39 @@ public class MessagePage {
     }
 
     private VBox createUserInfo() {
+        VBox userInfoContainer = new VBox(10);
         userInfoContainer.setStyle("-fx-padding: 10; -fx-background-color: #F0F0F0;");
-        userInfoContainer.setPrefWidth(250);
-        VBox.setVgrow(userInfoContainer, Priority.ALWAYS);
-    
+        ImageView avatar = new ImageView(new Image("/user.png"));
+        avatar.setFitWidth(80);
+        avatar.setFitHeight(80);
+       
+        Label userName = new Label(opponent.getUsername());
+        userName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("Tìm tin nhắn...");
+        searchField.setStyle("-fx-font-size: 14px;");
+       
+        Button spamButton = new Button("Báo Spam");
+        spamButton.setStyle("-fx-background-color: red; -fx-text-fill: white; -fx-font-size: 14px;");
+        spamButton.setOnAction(_ -> System.out.println("Báo cáo spam"));
+      
+        Button deleteHistoryButton = new Button("Xóa lịch sử");
+        deleteHistoryButton.setStyle("-fx-background-color: #FF4500; -fx-text-fill: white; -fx-font-size: 14px;");
+        deleteHistoryButton.setOnAction(_ -> System.out.println("Lịch sử đã bị xóa"));
+        userInfoContainer.getChildren().addAll(avatar, userName, searchField, spamButton, deleteHistoryButton);
         return userInfoContainer;
     }
 
 
-    private void updateUserInfo(Object selected) {
-        userInfoContainer.getChildren().clear();
-    
-        if (selected instanceof String name) {
-            for (Object item : chatData) {
-                if (item instanceof UserDTO && ((UserDTO) item).getFullName().equals(name)) {
-                    updateFriendInfo((UserDTO) item);
-                    opponent = ((UserDTO) item);
-                    chatContentContainer.getChildren().clear();
-                    updateChat();
-                    return;
-                } else if (item instanceof Group && ((Group) item).getName().equals(name)) {
-                    updateGroupInfo((Group) item);
-                    return;
-                }
-            }
-        }
-    }
 
-    private void updateChat() {
-        ScrollPane messagePane = new ScrollPane();
-        VBox messageContainer = new VBox(10); 
-        messageContainer.setStyle("-fx-padding: 10;");
-
-        messagePane.setContent(messageContainer);
-        messagePane.setFitToWidth(true);
-        VBox.setVgrow(messagePane, Priority.ALWAYS); 
-        List<MessageDTO> messageData;
-        MessageBUS temp = new MessageBUS();
-        messageData = temp.getMessagesBetweenUsers(opponent.getUserId(), user.getUserId());
-        for (MessageDTO message : messageData) {
-            addMessage(messageContainer, message);
-        }
-        
-        TextField inputField = new TextField();
-        inputField.setPromptText("Nhập tin nhắn...");
-        inputField.setStyle("-fx-font-size: 14px;");
-        inputField.setOnAction(_ -> {
-            String message = inputField.getText();
-            if (!message.isEmpty()) {
-                MessageDTO messageSend = new MessageDTO(user.getUserId(), opponent.getUserId(), message);
-                if (temp.addMessage(messageSend)) {
-                    addMessage(messageContainer, messageSend);
-                }
-                inputField.clear();
-                messagePane.setVvalue(1.0); // Cuộn xuống đáy
-            }
-        });
-        inputField.prefWidthProperty().bind(chatContentContainer.widthProperty()); // chiều rộng bằng nhau
-       
-        HBox inputArea = new HBox(10, inputField);
-        chatContentContainer.getChildren().addAll(messagePane, inputArea);
-    }
-    
-    private void updateFriendInfo(UserDTO friend) {
-        Label userName = new Label(friend.getFullName());
-        userName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+ 
+    private VBox createGroupInfo() {
+        VBox groupInfoContainer = new VBox(10);
+        groupInfoContainer.setStyle("-fx-padding: 10; -fx-background-color: #F0F0F0;");
+        ImageView avatar = new ImageView(new Image("/user.png"));
+        avatar.setFitWidth(80);
+        avatar.setFitHeight(80);
         
         TextField searchField = new TextField();
         searchField.setPromptText("Tìm kiếm tin nhắn...");
@@ -245,36 +294,16 @@ public class MessagePage {
         searchField.textProperty().addListener((_, _, _) -> {
         
         });
-        Button spamButton = new Button("Báo Spam");
-        spamButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
-        spamButton.setPrefWidth(150);
-    
-        Button deleteHistoryButton = new Button("Xóa đoạn chat");
-        deleteHistoryButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
-        deleteHistoryButton.setPrefWidth(150);
-    
-        userInfoContainer.getChildren().addAll(userName, searchField, spamButton, deleteHistoryButton);
-    }
-    
-    private void updateGroupInfo(Group group) {
-        Label groupName = new Label(group.getName());
+
+        Label groupName = new Label(mainGroup.getGroupName());
         groupName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-    
-        Label adminLabel = new Label("Admin: " + group.getAdmin());
-        adminLabel.setStyle("-fx-font-size: 14px;");
-        
-        TextField searchField = new TextField();
-        searchField.setPromptText("Tìm kiếm tin nhắn...");
-        searchField.setStyle("-fx-font-size: 14px;");
-        searchField.setPrefWidth(250);
-        searchField.textProperty().addListener((_, _, _) -> {
-        
-        });
+
+        Label adminLabel = new Label("Admin: " );
+        adminLabel.setStyle("-fx-font-size: 14px;");        
 
         ComboBox<String> memberDropdown = new ComboBox<>();
-        memberDropdown.getItems().addAll(group.getMembers());
+        memberDropdown.getItems().addAll("group.getMembers()");
         memberDropdown.setPromptText("Thành viên");
-        
         
         Button renameButton = new Button("Đổi tên nhóm");
         Button addMemberButton = new Button("Thêm thành viên");
@@ -291,7 +320,7 @@ public class MessagePage {
         assignAdminButton.setPrefWidth(150);
         removeMemberButton.setPrefWidth(150);
 
-        renameButton.setOnAction(_ -> {
+        /*renameButton.setOnAction(_ -> {
             showRenameGroupDialog(group.getName(), newName -> {
                 group.setName(newName); 
                  
@@ -314,9 +343,11 @@ public class MessagePage {
                 group.setAdmin(newAdmin); // Gán quyền admin mới
               
             });
-        });
+        }); */
         
-        userInfoContainer.getChildren().addAll(groupName, searchField, adminLabel, memberDropdown, renameButton, addMemberButton, assignAdminButton, removeMemberButton);
+        groupInfoContainer.getChildren().addAll(searchField, groupName, adminLabel, memberDropdown, renameButton, addMemberButton, assignAdminButton, removeMemberButton);
+
+        return groupInfoContainer;
     }
 
 
