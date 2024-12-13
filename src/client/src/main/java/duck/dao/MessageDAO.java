@@ -184,15 +184,15 @@ public class MessageDAO {
 
     public List<GroupDTO> getGroupsFromMessages(int userId) throws SQLException {
         List<GroupDTO> groups = new ArrayList<>();
-        String query = "SELECT DISTINCT m.group_id, g.group_name, g.created_at " +
-                   "FROM messages m " +
-                   "JOIN groups g ON m.group_id = g.group_id " + 
-                   "WHERE (m.sender_id = ? OR m.receiver_id = ?) AND m.group_id IS NOT NULL";
-    
+        String query = "SELECT DISTINCT g.group_id, g.group_name, g.created_at " +
+                   "FROM groups g " +
+                   "JOIN GroupMembers gm ON g.group_id = gm.group_id " +
+                   "JOIN messages m ON m.group_id = g.group_id " +
+                   "WHERE gm.user_id = ?";
+
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, userId);
-            stmt.setInt(2, userId);
         
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {

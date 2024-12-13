@@ -35,6 +35,8 @@ public class MessagePage {
     private UserBUS userBUS;
     private MessageBUS messageBUS;
     private GroupBUS groupBUS;
+
+    BorderPane root;
     VBox chatList;
     VBox chatContent;
     VBox userInfo;
@@ -53,16 +55,14 @@ public class MessagePage {
         chatData = FXCollections.observableArrayList();
         loadChatData();
 
+        root = new BorderPane();
         this.chatContent = new VBox();
         this.chatList = new VBox();   
         this.userInfo = new VBox();
-        
-        
-
     }    
 
     public BorderPane getContent() {
-        BorderPane root = new BorderPane();
+        root = new BorderPane();
 
         this.chatContent = createChatContent();  
         this.chatList = createChatList();
@@ -115,8 +115,6 @@ public class MessagePage {
         }
     }
 
-    
-
     private VBox createChatList() {
         VBox chatBox = new VBox(10);
 
@@ -127,9 +125,9 @@ public class MessagePage {
         ListView<Object> chatList = new ListView<>();
         for (Object item : chatData) {
             if (item instanceof UserDTO) {
-                chatList.getItems().add(((UserDTO) item).getUsername());
+                chatList.getItems().add((UserDTO) item);
             } else if (item instanceof GroupDTO) {
-                chatList.getItems().add(((GroupDTO) item).getGroupName());
+                chatList.getItems().add((GroupDTO) item);
             }
         }
         chatList.setCellFactory(_ -> new ListCell<>() {
@@ -151,12 +149,26 @@ public class MessagePage {
             }
         });
         chatList.getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> {
+            if (newValue != null) {
+                if (newValue instanceof UserDTO otherUser) {
+                    opponent = otherUser;
+                    mainGroup = null;
+                    userInfo = createUserInfo();
+                }
+                else if (newValue instanceof GroupDTO group) {
+                    opponent = null;
+                    mainGroup = group;
+                    userInfo = createGroupInfo();
+                }
+                chatContent = createChatContent();
+                root.setCenter(chatContent);
+                root.setRight(userInfo);
+                chatList.refresh();
+            }
             
-            chatList.refresh();
         });
 
         VBox.setVgrow(chatList, Priority.ALWAYS); 
-
         chatBox.getChildren().addAll(searchField, chatList);
         chatBox.setPrefWidth(250);
         chatBox.setStyle("-fx-padding: 10;");
@@ -169,7 +181,7 @@ public class MessagePage {
         chatContentBox.setStyle("-fx-padding: 10;");
         
         ScrollPane messagePane = new ScrollPane();
-        VBox messageContainer = new VBox(10); // Chứa các tin nhắn
+        VBox messageContainer = new VBox(10); 
         messageContainer.setStyle("-fx-padding: 10;");
         
         messagePane.setContent(messageContainer);
@@ -187,8 +199,6 @@ public class MessagePage {
             for (MessageDTO chat : oldChat) 
                 addMessage(messageContainer, chat);
         }
-
-        
 
         TextField inputField = new TextField();
         inputField.setPromptText("Nhập tin nhắn...");
@@ -221,11 +231,18 @@ public class MessagePage {
         return chatContentBox;
     }
 
-
     private void addMessage(VBox container, MessageDTO message) {
+        VBox messageWrapper = new VBox(5); 
+        messageWrapper.setStyle("-fx-padding: 5;");
+
+        if (message.getSenderId() != user.getUserId()) {
+            Label usernameLabel = new Label(userBUS.getUserById(message.getSenderId()).getUsername());
+            usernameLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #555555;");
+            messageWrapper.getChildren().add(usernameLabel);
+        }
+
         HBox messageBox = new HBox();
         Label messageLabel = new Label(message.getContent());
-
        
         messageLabel.setStyle("-fx-padding: 10; -fx-background-color: "
             + ((message.getSenderId() == user.getUserId()) ? "#DCF8C6" : "#FFFFFF") + "; -fx-border-radius: 10; "
@@ -249,7 +266,8 @@ public class MessagePage {
             messageBox.getChildren().addAll(messageLabel, optionsMenu);
         }
 
-        container.getChildren().add(messageBox);
+        messageWrapper.getChildren().add(messageBox);
+        container.getChildren().add(messageWrapper);
     }
 
     private VBox createUserInfo() {
@@ -290,7 +308,6 @@ public class MessagePage {
         TextField searchField = new TextField();
         searchField.setPromptText("Tìm kiếm tin nhắn...");
         searchField.setStyle("-fx-font-size: 14px;");
-        searchField.setPrefWidth(250);
         searchField.textProperty().addListener((_, _, _) -> {
         
         });
