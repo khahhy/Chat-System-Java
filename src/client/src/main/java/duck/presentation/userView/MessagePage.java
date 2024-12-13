@@ -11,6 +11,7 @@ import duck.dto.GroupDTO;
 import duck.dto.MessageDTO;
 import duck.bus.MessageBUS;
 import duck.dao.MessageDAO;
+import duck.bus.DeletedMessageBUS;
 import duck.bus.FriendBUS;
 import duck.bus.GroupBUS;
 import duck.bus.UserBUS;
@@ -35,7 +36,7 @@ public class MessagePage {
     private UserBUS userBUS;
     private MessageBUS messageBUS;
     private GroupBUS groupBUS;
-
+    private DeletedMessageBUS deletedMessageBUS;
     BorderPane root;
     VBox chatList;
     VBox chatContent;
@@ -51,7 +52,7 @@ public class MessagePage {
         this.userBUS = new UserBUS();
         this.messageBUS = new MessageBUS();
         this.groupBUS = new GroupBUS();
-
+        this.deletedMessageBUS = new DeletedMessageBUS();
         chatData = FXCollections.observableArrayList();
         loadChatData();
 
@@ -87,7 +88,7 @@ public class MessagePage {
         List<MessageDTO> chatParticipants = new ArrayList<>();
         for (UserDTO otherUser : friends) {
             MessageDTO lastMessage = messageBUS.getLastMessagesUsers(user.getUserId(), otherUser.getUserId());
-            if (lastMessage != null) {
+            if (lastMessage != null ) {
                 chatParticipants.add(lastMessage);            
             }
         }
@@ -190,8 +191,11 @@ public class MessagePage {
 
         if (opponent != null) {
             List<MessageDTO> oldChat = messageBUS.getMessagesBetweenUsers(user.getUserId(), opponent.getUserId());
-            for (MessageDTO chat : oldChat) 
-                addMessage(messageContainer, chat);
+            for (MessageDTO chat : oldChat) {
+                if (!deletedMessageBUS.checkDeletedMessage(chat.getMessageId(),user.getUserId())) {
+                    addMessage(messageContainer, chat);
+                }
+            }   
         }
 
         if (mainGroup != null) {
@@ -251,7 +255,7 @@ public class MessagePage {
         MenuButton optionsMenu = new MenuButton();
         MenuItem deleteItem = new MenuItem("Xóa tin nhắn");
         deleteItem.setOnAction(_ -> {
-            if (messageBUS.deleteMessage(message.getMessageId())) {
+            if (deletedMessageBUS.addDeletedMessage(message.getMessageId(), user.getUserId())) {
                 container.getChildren().remove(messageBox);
             }
         });
