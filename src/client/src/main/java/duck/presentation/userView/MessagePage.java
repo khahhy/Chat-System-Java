@@ -3,6 +3,7 @@ package duck.presentation.userView;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.postgresql.translation.messages_bg;
@@ -294,7 +295,35 @@ public class MessagePage {
       
         Button deleteHistoryButton = new Button("Xóa lịch sử");
         deleteHistoryButton.setStyle("-fx-background-color: #FF4500; -fx-text-fill: white; -fx-font-size: 14px;");
-        deleteHistoryButton.setOnAction(_ -> System.out.println("Lịch sử đã bị xóa"));
+        deleteHistoryButton.setOnAction(_ -> {
+            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmAlert.setTitle("Xác nhận xóa lịch sử");
+            confirmAlert.setHeaderText("Bạn có chắc chắn muốn xóa toàn bộ lịch sử tin nhắn?");
+            confirmAlert.setContentText("Hành động này không thể hoàn tác.");
+
+            Optional<ButtonType> result = confirmAlert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                if (opponent != null) {
+                    List<MessageDTO> allChat = messageBUS.getMessagesBetweenUsers(user.getUserId(), opponent.getUserId());
+                    for (MessageDTO chat : allChat) {
+                        deletedMessageBUS.addDeletedMessage(chat.getMessageId(), user.getUserId());
+                    }
+                    System.out.println("Lịch sử tin nhắn với " + opponent.getUsername() + " đã được xóa.");
+                    root.setCenter(createChatContent());
+                    root.setRight(createUserInfo());
+                }
+                // if (mainGroup != null) {
+                //     List<MessageDTO> allChat = messageBUS.getMessagesInGroup(mainGroup.getGroupId());
+                //     for (MessageDTO chat : allChat) {
+                //         deletedMessageBUS.addDeletedMessage(chat.getMessageId(), user.getUserId());
+                //     }
+                //     System.out.println("Lịch sử tin nhắn trong nhóm " + mainGroup.getGroupName() + " đã được xóa.");
+                // }
+            } else {
+                System.out.println("Hủy xóa lịch sử.");
+            }
+        });
+
         userInfoContainer.getChildren().addAll(avatar, userName, searchField, spamButton, deleteHistoryButton);
         return userInfoContainer;
     }
