@@ -448,4 +448,20 @@ public class UserDAO {
         }
         return false; // Trả về false nếu có lỗi hoặc email không tồn tại
     }
+
+    public boolean checkExistUserName(String UserName) {
+        String query = "SELECT COUNT(*) FROM Users WHERE username = ?";
+        try (Connection conn = DatabaseConnection.getConnection(); // Giả sử bạn có lớp DatabaseConnection để lấy kết nối
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, UserName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0; // Nếu COUNT > 0 thì email đã tồn tại
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // Xử lý ngoại lệ nếu cần
+        }
+        return false; // Trả về false nếu có lỗi hoặc email không tồn tại
+    }
 }

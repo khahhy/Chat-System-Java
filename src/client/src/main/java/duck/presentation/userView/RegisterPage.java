@@ -63,6 +63,12 @@ public class RegisterPage extends VBox {
             }
 
             UserBUS temp = new UserBUS();
+            if (temp.checkExistUserName(username)) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Useranem đã tồn tại");
+                alert.showAndWait();
+                return;
+            }
+
             if (temp.checkExistEmail(email)) {
                 Alert alert = new Alert(Alert.AlertType.ERROR, "Email đã tồn tại");
                 alert.showAndWait();
