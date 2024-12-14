@@ -1,5 +1,7 @@
 package duck.presentation.userView;
 
+
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,13 +13,19 @@ import org.postgresql.translation.messages_bg;
 import duck.dto.GroupDTO;
 import duck.dto.MessageDTO;
 import duck.bus.MessageBUS;
+import duck.bus.SpamReportBUS;
 import duck.dao.MessageDAO;
 import duck.bus.DeletedMessageBUS;
 import duck.bus.FriendBUS;
 import duck.bus.GroupBUS;
+import duck.bus.GroupMemberBUS;
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
+import duck.dto.GroupMemberDTO;
 
+import duck.presentation.MessageClient;
+
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -29,6 +37,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;   
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.scene.Node;
+
 
 public class MessagePage {
     private final UserDTO user;
@@ -37,19 +47,33 @@ public class MessagePage {
     private UserBUS userBUS;
     private MessageBUS messageBUS;
     private GroupBUS groupBUS;
+    private GroupMemberBUS groupMemBUS;
     private DeletedMessageBUS deletedMessageBUS;
     BorderPane root;
+
+    
     VBox chatList;
     VBox chatContent;
     VBox userInfo;
+    VBox messageContainer;
 
     private final ObservableList<Object> chatData;
 
-    
+    private MessageClient messageClient;
+
     public MessagePage(UserDTO user, UserDTO opponent, GroupDTO gr) {
         this.user = user;
         this.opponent = opponent;
         this.mainGroup = gr;
+
+        try {
+            this.messageClient = new MessageClient("localhost", 12345, user.getUserId(), this::handleIncomingMessage);
+        } catch (IOException e) {
+            e.printStackTrace();
+ 
+        }
+
+        this.groupMemBUS = new GroupMemberBUS();
         this.userBUS = new UserBUS();
         this.messageBUS = new MessageBUS();
         this.groupBUS = new GroupBUS();
@@ -61,7 +85,57 @@ public class MessagePage {
         this.chatContent = new VBox();
         this.chatList = new VBox();   
         this.userInfo = new VBox();
+        this.messageContainer = new VBox(10);
+
+      
     }    
+
+
+
+    private void handleIncomingMessage(String message) {
+        Platform.runLater(() -> {
+            MessageDTO newMessage = deserializeMessage(message); 
+            if (newMessage != null) {
+                addMessage(messageContainer, newMessage); 
+               
+            }
+        });
+    }
+
+    private String serializeMessage(MessageDTO message) {
+        return message.getSenderId() + "|" + message.getReceiverId() + "|" +
+               message.getGroupId() + "|" + message.getContent() + "|" +
+               message.getTimestamp();
+    }
+
+    private MessageDTO deserializeMessage(String message) {
+        String[] parts = message.split("\\|");
+        if (parts.length < 5) return null;
+    
+        int senderId = Integer.parseInt(parts[0]);
+        Integer receiverId = parts[1].equals("null") ? null : Integer.parseInt(parts[1]);
+        Integer groupId = parts[2].equals("null") ? null : Integer.parseInt(parts[2]);
+        String content = parts[3];
+        LocalDateTime timestamp = LocalDateTime.parse(parts[4]);
+    
+        return new MessageDTO(0, senderId, receiverId, groupId, content, timestamp, false);
+    }
+    
+
+    private void sendMessageToServer(MessageDTO newMessage) {
+        if (opponent != null) {
+            messageClient.sendMessage(opponent.getUserId(), serializeMessage(newMessage));
+                
+        } else if (mainGroup != null) {
+            List<GroupMemberDTO> listmem = groupMemBUS.getMembersByGroupId(mainGroup.getGroupId());
+            for (GroupMemberDTO mem : listmem) {
+                if (mem.getUserId() != user.getUserId()) 
+                    messageClient.sendMessage(mem.getUserId(), serializeMessage(newMessage));
+            }
+            
+        }
+    }
+    
 
     public BorderPane getContent() {
         root = new BorderPane();
@@ -183,7 +257,7 @@ public class MessagePage {
         chatContentBox.setStyle("-fx-padding: 10;");
         
         ScrollPane messagePane = new ScrollPane();
-        VBox messageContainer = new VBox(10); 
+        messageContainer = new VBox(10); 
         messageContainer.setStyle("-fx-padding: 10;");
         
         messagePane.setContent(messageContainer);
@@ -205,6 +279,8 @@ public class MessagePage {
                 addMessage(messageContainer, chat);
         }
 
+        Platform.runLater(() -> messagePane.setVvalue(1.0));
+
         TextField inputField = new TextField();
         inputField.setPromptText("Nhập tin nhắn...");
         inputField.setStyle("-fx-font-size: 14px;");
@@ -214,18 +290,20 @@ public class MessagePage {
                 if (opponent != null) {
                     MessageDTO newMessage = new MessageDTO(0, user.getUserId(), opponent.getUserId(), null, message, LocalDateTime.now(), false);
                     if (messageBUS.addMessage(newMessage)) {
+                        sendMessageToServer(newMessage);
                         addMessage(messageContainer, newMessage);
                         inputField.clear();
-                        messagePane.setVvalue(1.0); 
+                        scrollToBottom(messagePane);
                     }
                 }
 
                 if (mainGroup != null) {
                     MessageDTO newMessage = new MessageDTO(0, user.getUserId(), null, mainGroup.getGroupId(), message, LocalDateTime.now(), false);
                     if (messageBUS.addMessage(newMessage)) {
+                        sendMessageToServer(newMessage);
                         addMessage(messageContainer, newMessage);
                         inputField.clear();
-                        messagePane.setVvalue(1.0); 
+                        scrollToBottom(messagePane);
                     }
                 }
             }
@@ -234,6 +312,10 @@ public class MessagePage {
         HBox inputArea = new HBox(10, inputField);
         chatContentBox.getChildren().addAll(messagePane, inputArea);
         return chatContentBox;
+    }
+
+    private void scrollToBottom(ScrollPane scrollPane) {
+        Platform.runLater(() -> scrollPane.setVvalue(1.0)); 
     }
 
     private void addMessage(VBox container, MessageDTO message) {
@@ -284,14 +366,20 @@ public class MessagePage {
        
         Label userName = new Label(opponent.getUsername());
         userName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-        
-        TextField searchField = new TextField();
-        searchField.setPromptText("Tìm tin nhắn...");
-        searchField.setStyle("-fx-font-size: 14px;");
        
         Button spamButton = new Button("Báo Spam");
         spamButton.setStyle("-fx-background-color: red; -fx-text-fill: white; -fx-font-size: 14px;");
-        spamButton.setOnAction(_ -> System.out.println("Báo cáo spam"));
+        spamButton.setOnAction(_ -> {
+            SpamReportBUS spamReportBUS = new SpamReportBUS();
+            boolean success = spamReportBUS.reportUser(user.getUserId(), opponent.getUserId(), "");
+        
+            Alert alert = new Alert(success ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
+            alert.setTitle("Báo cáo Spam");
+            alert.setHeaderText(success ? "Thành công!" : "Thất bại!");
+            alert.setContentText(success ? "Báo cáo đã được gửi thành công." : "Có lỗi xảy ra khi gửi báo cáo.");
+            alert.showAndWait();
+        
+        });
       
         Button deleteHistoryButton = new Button("Xóa lịch sử");
         deleteHistoryButton.setStyle("-fx-background-color: #FF4500; -fx-text-fill: white; -fx-font-size: 14px;");
@@ -324,206 +412,87 @@ public class MessagePage {
             }
         });
 
-        userInfoContainer.getChildren().addAll(avatar, userName, searchField, spamButton, deleteHistoryButton);
+        userInfoContainer.getChildren().addAll(avatar, userName, spamButton, deleteHistoryButton);
         return userInfoContainer;
     }
 
 
 
- 
     private VBox createGroupInfo() {
+        GroupListView groupAction = new GroupListView(user, null);
         VBox groupInfoContainer = new VBox(10);
         groupInfoContainer.setStyle("-fx-padding: 10; -fx-background-color: #F0F0F0;");
         ImageView avatar = new ImageView(new Image("/user.png"));
         avatar.setFitWidth(80);
         avatar.setFitHeight(80);
-        
-        TextField searchField = new TextField();
-        searchField.setPromptText("Tìm kiếm tin nhắn...");
-        searchField.setStyle("-fx-font-size: 14px;");
-        searchField.textProperty().addListener((_, _, _) -> {
-        
-        });
 
         Label groupName = new Label(mainGroup.getGroupName());
         groupName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-
-        Label adminLabel = new Label("Admin: " );
-        adminLabel.setStyle("-fx-font-size: 14px;");        
-
-        ComboBox<String> memberDropdown = new ComboBox<>();
-        memberDropdown.getItems().addAll("group.getMembers()");
-        memberDropdown.setPromptText("Thành viên");
         
+        Button infoButton = new Button("Thông tin nhóm");
         Button renameButton = new Button("Đổi tên nhóm");
         Button addMemberButton = new Button("Thêm thành viên");
         Button assignAdminButton = new Button("Gán quyền admin");
         Button removeMemberButton = new Button("Xóa thành viên");
-    
+        
+        infoButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
         renameButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
         addMemberButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
         assignAdminButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
         removeMemberButton.setStyle("-fx-background-color: #274C77; -fx-text-fill: white; -fx-font-size: 14px;");
         
+        infoButton.setPrefWidth(150);
         renameButton.setPrefWidth(150);
         addMemberButton.setPrefWidth(150);
         assignAdminButton.setPrefWidth(150);
         removeMemberButton.setPrefWidth(150);
 
-        /*renameButton.setOnAction(_ -> {
-            showRenameGroupDialog(group.getName(), newName -> {
-                group.setName(newName); 
-                 
-            });
+        infoButton.setOnAction(_ -> {
+            groupAction.showGroupInfoPopup(mainGroup);
+        });
+
+        renameButton.setOnAction(_ -> {
+            groupAction.updateNameGroup(mainGroup);
         });
         addMemberButton.setOnAction(_ -> {
-            showAddMemberDialog(newMembers -> {
-                group.getMembers().addAll(newMembers); // Thêm thành viên mới
-                // Cập nhật giao diện
-            });
+            groupAction.addMember(mainGroup);
         });
         removeMemberButton.setOnAction(_ -> {
-            showRemoveMemberDialog(group.getMembers(), removedMembers -> {
-                group.getMembers().removeAll(removedMembers); // Xóa thành viên
-            // Cập nhật giao diện
-            });
+            groupAction.removeMember(mainGroup);
         });
         assignAdminButton.setOnAction(_ -> {
-            showAssignAdminDialog(group.getMembers(), newAdmin -> {
-                group.setAdmin(newAdmin); // Gán quyền admin mới
-              
-            });
-        }); */
+            groupAction.updateAdmin(mainGroup);
+        }); 
+
+        Button deleteHistoryButton = new Button("Xóa lịch sử");
+        deleteHistoryButton.setStyle("-fx-background-color: #FF4500; -fx-text-fill: white; -fx-font-size: 14px;");
+        deleteHistoryButton.setOnAction(_ -> {
+            Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmAlert.setTitle("Xác nhận xóa lịch sử");
+            confirmAlert.setHeaderText("Bạn có chắc chắn muốn xóa toàn bộ lịch sử tin nhắn?");
+            confirmAlert.setContentText("Hành động này không thể hoàn tác.");
+
+            Optional<ButtonType> result = confirmAlert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                if (mainGroup != null) {
+                    List<MessageDTO> allChat = messageBUS.getMessagesInGroup(mainGroup.getGroupId());
+                    for (MessageDTO chat : allChat) {
+                        deletedMessageBUS.addDeletedMessage(chat.getMessageId(), user.getUserId());
+                    }
+                    System.out.println("Lịch sử tin nhắn trong nhóm " + mainGroup.getGroupName() + " đã được xóa.");
+                    root.setCenter(createChatContent());
+                    root.setRight(createGroupInfo());
+                }
+            } else {
+                System.out.println("Hủy xóa lịch sử.");
+            }
+        });
+
         
-        groupInfoContainer.getChildren().addAll(searchField, groupName, adminLabel, memberDropdown, renameButton, addMemberButton, assignAdminButton, removeMemberButton);
+        groupInfoContainer.getChildren().addAll(groupName, infoButton, renameButton, addMemberButton, assignAdminButton, removeMemberButton, deleteHistoryButton);
 
         return groupInfoContainer;
     }
 
-
-
-
-
-
-
-
-    // các tùy chọn vs nhóm nè
-    //đổi tên
-    private void showRenameGroupDialog(String currentName, Consumer<String> onSave) {
-        Stage popupStage = new Stage();
-        popupStage.initModality(Modality.APPLICATION_MODAL);
-        popupStage.setTitle("Đổi tên nhóm");
-
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(10));
-
-        Label instruction = new Label("Nhập tên mới:");
-        TextField nameField = new TextField(currentName);
-
-        HBox buttons = new HBox(10);
-        Button saveButton = new Button("Save");
-        Button cancelButton = new Button("Cancel");
-
-        saveButton.setOnAction(_ -> {
-            onSave.accept(nameField.getText());
-            popupStage.close();
-        });
-
-        cancelButton.setOnAction(_ -> popupStage.close());
-
-        buttons.getChildren().addAll(saveButton, cancelButton);
-        buttons.setAlignment(Pos.CENTER_RIGHT);
-
-        layout.getChildren().addAll(instruction, nameField, buttons);
-
-        Scene scene = new Scene(layout, 300, 150);
-        popupStage.setScene(scene);
-        popupStage.showAndWait();
-    }
-
-    //thêm
-    private void showAddMemberDialog(Consumer<List<String>> onSave) {
-        Stage popupStage = new Stage();
-        popupStage.initModality(Modality.APPLICATION_MODAL);
-        popupStage.setTitle("Thêm thành viên");
-
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(10));
-
-        Label instruction = new Label("Nhập tên thành viên:");
-        TextField memberField = new TextField();
-        ListView<String> newMembers = new ListView<>();
-        Button addButton = new Button("Thêm");
-
-        HBox buttons = new HBox(10);
-        Button saveButton = new Button("Save");
-        Button cancelButton = new Button("Cancel");
-
-        buttons.getChildren().addAll(saveButton, cancelButton);
-        buttons.setAlignment(Pos.CENTER_RIGHT);
-
-        layout.getChildren().addAll(instruction, memberField, addButton, newMembers, buttons);
-
-        Scene scene = new Scene(layout, 300, 300);
-        popupStage.setScene(scene);
-        popupStage.showAndWait();
-    }
-
-
-    // xóa
-    private void showRemoveMemberDialog(List<String> currentMembers, Consumer<List<String>> onSave) {
-        Stage popupStage = new Stage();
-        popupStage.initModality(Modality.APPLICATION_MODAL);
-        popupStage.setTitle("Xóa thành viên");
-    
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(10));
-    
-        Label instruction = new Label("Chọn thành viên để xóa:");
-        ListView<String> membersList = new ListView<>();
-        membersList.getItems().addAll(currentMembers);
-        membersList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-    
-        HBox buttons = new HBox(10);
-        Button saveButton = new Button("Save");
-        Button cancelButton = new Button("Cancel");
-    
-        buttons.getChildren().addAll(saveButton, cancelButton);
-        buttons.setAlignment(Pos.CENTER_RIGHT);
-    
-        layout.getChildren().addAll(instruction, membersList, buttons);
-    
-        Scene scene = new Scene(layout, 300, 300);
-        popupStage.setScene(scene);
-        popupStage.showAndWait();
-    }
-
-    //admin
-    private void showAssignAdminDialog(List<String> currentMembers, Consumer<String> onSave) {
-        Stage popupStage = new Stage();
-        popupStage.initModality(Modality.APPLICATION_MODAL);
-        popupStage.setTitle("Gán quyền Admin");
-    
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(10));
-    
-        Label instruction = new Label("Chọn thành viên để làm admin:");
-        ListView<String> membersList = new ListView<>();
-        membersList.getItems().addAll(currentMembers);
-        membersList.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-    
-        HBox buttons = new HBox(10);
-        Button saveButton = new Button("Save");
-        Button cancelButton = new Button("Cancel");
-    
-        buttons.getChildren().addAll(saveButton, cancelButton);
-        buttons.setAlignment(Pos.CENTER_RIGHT);
-    
-        layout.getChildren().addAll(instruction, membersList, buttons);
-    
-        Scene scene = new Scene(layout, 300, 300);
-        popupStage.setScene(scene);
-        popupStage.showAndWait();
-    }
 
 }

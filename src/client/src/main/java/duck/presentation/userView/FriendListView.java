@@ -1,5 +1,5 @@
 package duck.presentation.userView;
-import duck.presentation.userView.MessagePage;
+
 import java.util.List;
 
 import duck.bus.FriendBUS;
@@ -128,10 +128,10 @@ public class FriendListView {
                         boolean confirmDelete = confirmDeleteDialog(item.getUsername());
                         if (confirmDelete) {
                             try {
-                                boolean success = friendBUS.deleteFriend(user.getUserId(), item.getUserId()); // Gọi phương thức xóa bạn
+                                boolean success = friendBUS.deleteFriend(user.getUserId(), item.getUserId()); 
                                 if (success) {
-                                    friends.remove(item); // Xóa bạn khỏi danh sách
-                                    displayedFriends.remove(item); // Cập nhật danh sách hiển thị
+                                    friends.remove(item); 
+                                    displayedFriends.remove(item); 
                                 } else {
                                     showErrorDialog("Không thể xóa bạn. Vui lòng thử lại sau.");
                                 }
@@ -147,9 +147,9 @@ public class FriendListView {
                         boolean confirmBlock = confirmBlockDialog(item.getUsername());
                         if (confirmBlock) {
                             try {
-                                boolean success = friendBUS.blockFriend(user.getUserId(), item.getUserId()); // Gọi phương thức block
+                                boolean success = friendBUS.blockFriend(user.getUserId(), item.getUserId()); 
                                 if (success) {
-                                    friends.remove(item); // Xóa khỏi danh sách hiển thị
+                                    friends.remove(item); 
                                     displayedFriends.remove(item);
                                 } else {
                                     showErrorDialog("Không thể block bạn. Vui lòng thử lại sau.");

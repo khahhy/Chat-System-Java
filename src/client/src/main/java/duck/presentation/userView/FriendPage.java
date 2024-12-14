@@ -145,7 +145,7 @@ public class FriendPage {
         Button groupListButton = new Button("Danh sách nhóm");
         groupListButton.setPrefWidth(200);
         groupListButton.setStyle("-fx-font-size: 14px;");
-        groupListButton.setOnAction(_ -> root.setCenter(new GroupListView(user).getContent()));
+        groupListButton.setOnAction(_ -> root.setCenter(new GroupListView(user, parent).getContent()));
     
         Button friendRequestButton = new Button("Lời mời kết bạn");
         friendRequestButton.setPrefWidth(200);
@@ -274,12 +274,12 @@ public class FriendPage {
             });
 
             viewInfo.setOnAction(_ -> {
-                GroupListView groupInfoView = new GroupListView(user);
+                GroupListView groupInfoView = new GroupListView(user, parent);
                 groupInfoView.showGroupInfoPopup(group);
             });
 
             leaveGroup.setOnAction(_ -> {
-                GroupListView groupInfoView = new GroupListView(user);
+                GroupListView groupInfoView = new GroupListView(user, parent);
                 groupInfoView.showConfirmLeavePopup(group);
             });
 

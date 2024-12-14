@@ -21,7 +21,6 @@ public class ClientApp extends Application {
     public void start(Stage stage) {
         primaryStage = stage;
         try {
-            // check kết nối dữ liệu
             Connection connection = DatabaseConnection.getConnection();
 
             String query = "SELECT * FROM Users";
@@ -37,7 +36,6 @@ public class ClientApp extends Application {
                 System.out.println("UserID: " + userId + ", Username: " + username + ", FullName: " + fullName + ", Email: " + email);
             }
 
-            // Đóng kết nối
             resultSet.close();
             statement.close();
             connection.close();

@@ -4,7 +4,9 @@ Thiết kế giao diện:
 
 Vào thư mục src:
 
-chạy lệnh: ./mvnw.cmd exec:java -pl client
+chạy lệnh: .\mvnw.cmd exec:java -pl client
+
+.\mvnw.cmd exec:java -pl server
 
 Với người quản trị:
 

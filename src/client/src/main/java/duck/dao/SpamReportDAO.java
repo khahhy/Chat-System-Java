@@ -92,4 +92,19 @@ public class SpamReportDAO {
         }
     }
     
+    public boolean sendReport(int reporterId, int reportedId, String reason) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "INSERT INTO SpamReports (reporter_id, reported_id, reason, created_at) VALUES (?, ?, ?, ?)")) {
+            
+            stmt.setInt(1, reporterId);
+            stmt.setInt(2, reportedId);
+            stmt.setString(3, reason);
+            stmt.setTimestamp(4, Timestamp.valueOf(LocalDateTime.now()));
+            
+            int result = stmt.executeUpdate();
+            return result > 0; 
+        } 
+    }
+    
 }

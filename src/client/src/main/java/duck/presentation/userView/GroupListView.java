@@ -1,12 +1,12 @@
 package duck.presentation.userView;
 
-import java.time.LocalDateTime;
+
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import duck.bus.GroupBUS;
 import duck.bus.GroupMemberBUS;
-import duck.dao.UserDAO;
+
 import duck.dto.FriendDTO;
 import duck.dto.GroupDTO;
 import duck.dto.GroupMemberDTO;
@@ -17,7 +17,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.effect.GaussianBlur;
+
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -36,7 +36,11 @@ public class GroupListView {
     private final UserBUS userBUS;
     private final FriendBUS friendBUS;
 
-    public GroupListView(UserDTO user) {
+    private final BorderPane parent;
+
+    public GroupListView(UserDTO user, BorderPane root) {
+        parent = root;
+
         this.user = user;
         groupMemBUS = new GroupMemberBUS();
         groupBUS = new GroupBUS();
@@ -87,6 +91,7 @@ public class GroupListView {
                     container.setLeft(groupName);
 
                     MenuButton optionsButton = new MenuButton();
+                    MenuItem groupChat = new MenuItem("Nhắn tin");
                     MenuItem viewInfo = new MenuItem("Xem thông tin");
                     MenuItem updateName = new MenuItem("Đổi tên nhóm");
                     MenuItem addMem = new MenuItem("Thêm thành viên");
@@ -94,8 +99,10 @@ public class GroupListView {
                     MenuItem removeMem = new MenuItem("Xóa thành viên");
                     MenuItem leaveGroup = new MenuItem("Rời nhóm");
 
-                    optionsButton.getItems().addAll(viewInfo, updateName, addMem, updateAdmin, removeMem, leaveGroup);
+                    optionsButton.getItems().addAll(groupChat, viewInfo, updateName, addMem, updateAdmin, removeMem, leaveGroup);
                     optionsButton.setStyle("-fx-font-size: 14px;");
+
+                    groupChat.setOnAction(_ -> parent.setCenter(new MessagePage(user, null, item).getContent()));
 
                     viewInfo.setOnAction(_ -> showGroupInfoPopup(item));
 
@@ -232,7 +239,7 @@ public class GroupListView {
         return result[0];
     }
 
-    private void updateNameGroup(GroupDTO group) {
+    public void updateNameGroup(GroupDTO group) {
         Stage editStage = new Stage();
         editStage.initModality(Modality.APPLICATION_MODAL);
         editStage.initStyle(StageStyle.TRANSPARENT);
@@ -294,7 +301,7 @@ public class GroupListView {
         editStage.showAndWait(); // Đợi popup đóng
     }
 
-    private void addMember(GroupDTO group) {
+    public void addMember(GroupDTO group) {
         Stage editStage = new Stage();
         editStage.initModality(Modality.APPLICATION_MODAL);
         editStage.initStyle(StageStyle.TRANSPARENT);
@@ -390,7 +397,7 @@ public class GroupListView {
         editStage.showAndWait(); // Đợi popup đóng
     }
 
-    private void updateAdmin(GroupDTO group) {
+    public void updateAdmin(GroupDTO group) {
         Stage editStage = new Stage();
         editStage.initModality(Modality.APPLICATION_MODAL);
         editStage.initStyle(StageStyle.TRANSPARENT);
@@ -492,7 +499,7 @@ public class GroupListView {
         editStage.showAndWait(); // Đợi popup đóng
     }
 
-    private void removeMember(GroupDTO group) {
+    public void removeMember(GroupDTO group) {
         Stage editStage = new Stage();
         editStage.initModality(Modality.APPLICATION_MODAL);
         editStage.initStyle(StageStyle.TRANSPARENT);

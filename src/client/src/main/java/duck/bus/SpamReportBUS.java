@@ -55,4 +55,13 @@ public class SpamReportBUS {
             return false;
         }
     }
+
+    public boolean reportUser(int reporterId, int reportedId, String reason) {
+        try {
+            return spamReportDAO.sendReport(reporterId, reportedId, reason);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
