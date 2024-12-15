@@ -86,16 +86,33 @@ public class LoginPage {
             Optional<UserDTO> adminOpt = isAdmin(username, password);
             if (adminOpt.isPresent()) {
                 UserDTO adminUser = adminOpt.get();
-                showAdminOrUserChoicePopup(username, adminUser); // Hiển thị popup lựa chọn vai trò.
+                if (adminUser.isOnline()) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Thông báo");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Tài khoản đang được đăng nhập ở nơi khác");
+                    alert.showAndWait();
+                } else {
+                    showAdminOrUserChoicePopup(username, adminUser); // Hiển thị popup lựa chọn vai trò.
+                }
             } else {
                 // Kiểm tra xem tài khoản có hợp lệ không (user thông thường)
                 Optional<UserDTO> userOpt = isValidUser(username, password);
                 if (userOpt.isPresent()) {
                     UserDTO user = userOpt.get(); // Lấy thông tin người dùng từ Optional.
-                    loginHistoryBUS.addLoginHistory(new LoginHistoryDTO(0, user.getUserId(), LocalDateTime.now(), null));
-                    user.setOnline(true);
-                    userBUS.updateUser(user);
-                    app.showHomePage(user); // Chuyển đến trang chủ với đối tượng UserDTO.
+                    if (!user.isOnline()) {
+                        loginHistoryBUS.addLoginHistory(new LoginHistoryDTO(0, user.getUserId(), LocalDateTime.now(), null));
+                        user.setOnline(true);
+                        userBUS.updateUser(user);
+                        app.showHomePage(user); // Chuyển đến trang chủ với đối tượng UserDTO.
+                    }
+                    else {
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Thông báo");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Tài khoản đang được đăng nhập ở nơi khác");
+                        alert.showAndWait();
+                    }
                 } else {
                     // Thông báo lỗi khi đăng nhập không hợp lệ.
                     Alert alert = new Alert(Alert.AlertType.ERROR);
