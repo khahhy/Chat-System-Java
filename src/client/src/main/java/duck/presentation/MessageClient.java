@@ -17,7 +17,13 @@ public class MessageClient {
         this.onMessageReceived = onMessageReceived;
 
         out.println(userId);
-
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }));
         new Thread(() -> {
             try {
                 String message;

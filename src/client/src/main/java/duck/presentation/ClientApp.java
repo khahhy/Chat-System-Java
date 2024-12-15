@@ -4,11 +4,6 @@ import duck.presentation.userView.*;
 import duck.presentation.loginView.*;
 
 import duck.dto.UserDTO;
-import duck.dao.DatabaseConnection;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -20,30 +15,6 @@ public class ClientApp extends Application {
     @Override
     public void start(Stage stage) {
         primaryStage = stage;
-        try {
-            Connection connection = DatabaseConnection.getConnection();
-
-            String query = "SELECT * FROM Users";
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(query);
-
-            System.out.println("Dữ liệu trong bảng Users:");
-            while (resultSet.next()) {
-                int userId = resultSet.getInt("user_id");
-                String username = resultSet.getString("username");
-                String fullName = resultSet.getString("full_name");
-                String email = resultSet.getString("email");
-                System.out.println("UserID: " + userId + ", Username: " + username + ", FullName: " + fullName + ", Email: " + email);
-            }
-
-            resultSet.close();
-            statement.close();
-            connection.close();
-            
-            showLoginPage();
-        } catch (SQLException e) {
-            System.out.println("ket noi du lieu khong thanh cong: " + e.getMessage());
-        }
         showLoginPage();
 
         primaryStage.setTitle("Chat System");

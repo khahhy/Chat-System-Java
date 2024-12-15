@@ -1,12 +1,10 @@
 package duck.dao;
 
-import duck.dto.MessageDTO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import duck.dto.DeletedMessageDTO;
 
 public class DeletedMessageDAO {
     public boolean addDeletedMessage(int messageId, int userId) throws SQLException {

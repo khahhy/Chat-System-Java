@@ -13,10 +13,10 @@ public class SettingPage {
         label.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
 
         Button privacyButton = new Button("Chính sách riêng tư");
-        privacyButton.setOnAction(e -> System.out.println("Xem/chỉnh sửa cài đặt riêng tư."));
+        privacyButton.setOnAction(_ -> System.out.println("Xem/chỉnh sửa cài đặt riêng tư."));
 
         Button accountSettingsButton = new Button("Cài đặt tài khoản");
-        accountSettingsButton.setOnAction(e -> System.out.println("Cài đặt tài khoản người dùng."));
+        accountSettingsButton.setOnAction(_ -> System.out.println("Cài đặt tài khoản người dùng."));
 
         settingsPage.getChildren().addAll(label, privacyButton, accountSettingsButton);
         return settingsPage;

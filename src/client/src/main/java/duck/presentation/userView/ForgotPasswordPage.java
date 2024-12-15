@@ -24,7 +24,7 @@ public class ForgotPasswordPage extends VBox {
         Button submitButton = new Button("Gửi yêu cầu");
         submitButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: black; -fx-font-size: 14px; -fx-padding: 10px 20px; -fx-border-radius: 5px;");
 
-        submitButton.setOnAction(e -> {
+        submitButton.setOnAction(_ -> {
             String email = emailField.getText();
             UserDTO user = new UserDAO().getUserByEmail(email); // Kiểm tra email có tồn tại trong database
 

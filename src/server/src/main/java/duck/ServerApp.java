@@ -10,11 +10,11 @@ public class ServerApp {
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Server đang chạy trên port " + PORT);
+            System.out.println("Server is running on port " + PORT);
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Client kết nối: " + clientSocket.getInetAddress());
+                System.out.println("Client connect: " + clientSocket.getInetAddress());
 
                 ClientHandler handler = new ClientHandler(clientSocket);
                 new Thread(handler).start();

@@ -3,7 +3,7 @@ package duck.presentation.userView;
 import org.mindrot.jbcrypt.BCrypt;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
+
 import javafx.stage.Stage;
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
@@ -42,7 +42,7 @@ public class RegisterPage extends VBox {
         goToLoginButton.setStyle("-fx-text-fill: #1E90FF; -fx-font-size: 14px; -fx-background-color: transparent; -fx-underline: true;");
 
         // Sự kiện đăng ký
-        registerButton.setOnAction(e -> {
+        registerButton.setOnAction(_ -> {
             String username = usernameField.getText();
             String email = emailField.getText();
             String password = passwordField.getText();
@@ -111,7 +111,7 @@ public class RegisterPage extends VBox {
         });
 
         // Sự kiện quay lại trang đăng nhập
-        goToLoginButton.setOnAction(e -> {
+        goToLoginButton.setOnAction(_ -> {
             if (loginPage != null) {
                 stage.getScene().setRoot(loginPage); // Quay lại Login Page
             } else {
