@@ -29,6 +29,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;   
 import javafx.scene.Node;
 import javafx.util.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MessagePage {
     private final UserDTO user;
@@ -39,9 +41,12 @@ public class MessagePage {
     private GroupBUS groupBUS;
     private GroupMemberBUS groupMemBUS;
     private DeletedMessageBUS deletedMessageBUS;
-    BorderPane root;
 
-    
+    private final Map<Integer, List<MessageDTO>> userMessagesCache = new HashMap<>();
+    private final Map<Integer, List<MessageDTO>> groupMessagesCache = new HashMap<>();
+
+
+    BorderPane root;
     VBox chatList;
     VBox chatContent;
     VBox userInfo;
@@ -110,7 +115,6 @@ public class MessagePage {
         return new MessageDTO(0, senderId, receiverId, groupId, content, timestamp, false);
     }
     
-
     private void sendMessageToServer(MessageDTO newMessage) {
         if (opponent != null) {
             messageClient.sendMessage(opponent.getUserId(), serializeMessage(newMessage));
@@ -241,28 +245,37 @@ public class MessagePage {
     private VBox createChatContent() {
         VBox chatContentBox = new VBox(10);
         chatContentBox.setStyle("-fx-padding: 10;");
-    
+        
+        messageContainer.getChildren().clear();
         messageContainer.setStyle("-fx-padding: 10;");
         messagePane.setContent(messageContainer);
         messagePane.setFitToWidth(true);
         VBox.setVgrow(messagePane, Priority.ALWAYS);
 
-        if (opponent != null) {
-            List<MessageDTO> oldChat = messageBUS.getMessagesBetweenUsers(user.getUserId(), opponent.getUserId());
-            for (MessageDTO chat : oldChat) {
-                if (!deletedMessageBUS.checkDeletedMessage(chat.getMessageId(),user.getUserId())) {
-                    addMessage(messageContainer, chat);
-                }
-            }   
+        List<MessageDTO> oldChat;
+    if (opponent != null) {
+        oldChat = userMessagesCache.getOrDefault(opponent.getUserId(), null);
+        if (oldChat == null) {
+            oldChat = messageBUS.getMessagesBetweenUsers(user.getUserId(), opponent.getUserId());
+            userMessagesCache.put(opponent.getUserId(), oldChat); 
         }
-
-        if (mainGroup != null) {
-            List<MessageDTO> oldChat = messageBUS.getMessagesInGroup(mainGroup.getGroupId());
-            for (MessageDTO chat : oldChat) 
-            if (!deletedMessageBUS.checkDeletedMessage(chat.getMessageId(),user.getUserId())) {
+        for (MessageDTO chat : oldChat) {
+            if (!deletedMessageBUS.checkDeletedMessage(chat.getMessageId(), user.getUserId())) {
                 addMessage(messageContainer, chat);
             }
         }
+    } else if (mainGroup != null) {
+        oldChat = groupMessagesCache.getOrDefault(mainGroup.getGroupId(), null);
+        if (oldChat == null) {
+            oldChat = messageBUS.getMessagesInGroup(mainGroup.getGroupId());
+            groupMessagesCache.put(mainGroup.getGroupId(), oldChat); 
+        }
+        for (MessageDTO chat : oldChat) {
+            if (!deletedMessageBUS.checkDeletedMessage(chat.getMessageId(), user.getUserId())) {
+                addMessage(messageContainer, chat);
+            }
+        }
+    }
 
         Platform.runLater(() -> messagePane.setVvalue(1.0));
 
@@ -324,7 +337,7 @@ public class MessagePage {
         MenuItem deleteItem = new MenuItem("Xóa tin nhắn");
         deleteItem.setOnAction(_ -> {
             if (deletedMessageBUS.addDeletedMessage(message.getMessageId(), user.getUserId())) {
-                container.getChildren().remove(messageBox);
+                container.getChildren().remove(messageWrapper);
             }
         });
         optionsMenu.getItems().add(deleteItem);
@@ -380,6 +393,7 @@ public class MessagePage {
                     for (MessageDTO chat : allChat) {
                         deletedMessageBUS.addDeletedMessage(chat.getMessageId(), user.getUserId());
                     }
+                    userMessagesCache.remove(opponent.getUserId());
                     System.out.println("Lịch sử tin nhắn với " + opponent.getUsername() + " đã được xóa.");
                     root.setCenter(createChatContent());
                     root.setRight(createUserInfo());
@@ -453,6 +467,7 @@ public class MessagePage {
                     for (MessageDTO chat : allChat) {
                         deletedMessageBUS.addDeletedMessage(chat.getMessageId(), user.getUserId());
                     }
+                    groupMessagesCache.remove(mainGroup.getGroupId());
                     System.out.println("Lịch sử tin nhắn trong nhóm " + mainGroup.getGroupName() + " đã được xóa.");
                     root.setCenter(createChatContent());
                     root.setRight(createGroupInfo());

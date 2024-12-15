@@ -42,6 +42,15 @@ public class MessageClient {
     }
 
     public void close() throws IOException {
-        socket.close();
+        if (socket != null && !socket.isClosed()) {
+            socket.close();
+        }
+        if (out != null) {
+            out.close();
+        }
+        if (in != null) {
+            in.close();
+        }
     }
+    
 }
