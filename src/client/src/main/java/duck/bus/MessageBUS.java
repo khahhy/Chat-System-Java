@@ -107,4 +107,14 @@ public class MessageBUS {
             return null;
         }
     }
+
+    public List<MessageDTO> getAllMessagesByUser(int userId) {
+        try {
+            return messageDAO.getAllMessagesByUser(userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+    
 }

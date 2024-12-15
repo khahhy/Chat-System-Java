@@ -1,22 +1,19 @@
 package duck.presentation.userView;
 
-
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
-
-import org.postgresql.translation.messages_bg;
 
 import duck.dto.GroupDTO;
 import duck.dto.MessageDTO;
 import duck.bus.MessageBUS;
 import duck.bus.SpamReportBUS;
-import duck.dao.MessageDAO;
+
 import duck.bus.DeletedMessageBUS;
-import duck.bus.FriendBUS;
+
 import duck.bus.GroupBUS;
 import duck.bus.GroupMemberBUS;
 import duck.bus.UserBUS;
@@ -24,21 +21,14 @@ import duck.dto.UserDTO;
 import duck.dto.GroupMemberDTO;
 
 import duck.presentation.MessageClient;
-
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;   
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import javafx.scene.Node;
-
+import javafx.util.Duration;
 
 public class MessagePage {
     private final UserDTO user;
@@ -56,6 +46,7 @@ public class MessagePage {
     VBox chatContent;
     VBox userInfo;
     VBox messageContainer;
+    ScrollPane messagePane;
 
     private final ObservableList<Object> chatData;
 
@@ -86,11 +77,9 @@ public class MessagePage {
         this.chatList = new VBox();   
         this.userInfo = new VBox();
         this.messageContainer = new VBox(10);
-
+        this.messagePane = new ScrollPane();
       
     }    
-
-
 
     private void handleIncomingMessage(String message) {
         Platform.runLater(() -> {
@@ -194,10 +183,6 @@ public class MessagePage {
     private VBox createChatList() {
         VBox chatBox = new VBox(10);
 
-        TextField searchField = new TextField();
-        searchField.setPromptText("Tìm người nhắn tin...");
-        searchField.setStyle("-fx-font-size: 14px;");
-
         ListView<Object> chatList = new ListView<>();
         for (Object item : chatData) {
             if (item instanceof UserDTO) {
@@ -245,21 +230,19 @@ public class MessagePage {
         });
 
         VBox.setVgrow(chatList, Priority.ALWAYS); 
-        chatBox.getChildren().addAll(searchField, chatList);
+        chatBox.getChildren().addAll(chatList);
         chatBox.setPrefWidth(250);
         chatBox.setStyle("-fx-padding: 10;");
 
         return chatBox;
     }
 
+    
     private VBox createChatContent() {
         VBox chatContentBox = new VBox(10);
         chatContentBox.setStyle("-fx-padding: 10;");
-        
-        ScrollPane messagePane = new ScrollPane();
-        messageContainer = new VBox(10); 
+    
         messageContainer.setStyle("-fx-padding: 10;");
-        
         messagePane.setContent(messageContainer);
         messagePane.setFitToWidth(true);
         VBox.setVgrow(messagePane, Priority.ALWAYS);
@@ -276,7 +259,9 @@ public class MessagePage {
         if (mainGroup != null) {
             List<MessageDTO> oldChat = messageBUS.getMessagesInGroup(mainGroup.getGroupId());
             for (MessageDTO chat : oldChat) 
+            if (!deletedMessageBUS.checkDeletedMessage(chat.getMessageId(),user.getUserId())) {
                 addMessage(messageContainer, chat);
+            }
         }
 
         Platform.runLater(() -> messagePane.setVvalue(1.0));
@@ -360,10 +345,9 @@ public class MessagePage {
     private VBox createUserInfo() {
         VBox userInfoContainer = new VBox(10);
         userInfoContainer.setStyle("-fx-padding: 10; -fx-background-color: #F0F0F0;");
-        ImageView avatar = new ImageView(new Image("/user.png"));
-        avatar.setFitWidth(80);
-        avatar.setFitHeight(80);
-       
+        
+        VBox searchSection = createSearchSection();
+
         Label userName = new Label(opponent.getUsername());
         userName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
        
@@ -400,31 +384,21 @@ public class MessagePage {
                     root.setCenter(createChatContent());
                     root.setRight(createUserInfo());
                 }
-                // if (mainGroup != null) {
-                //     List<MessageDTO> allChat = messageBUS.getMessagesInGroup(mainGroup.getGroupId());
-                //     for (MessageDTO chat : allChat) {
-                //         deletedMessageBUS.addDeletedMessage(chat.getMessageId(), user.getUserId());
-                //     }
-                //     System.out.println("Lịch sử tin nhắn trong nhóm " + mainGroup.getGroupName() + " đã được xóa.");
-                // }
             } else {
                 System.out.println("Hủy xóa lịch sử.");
             }
         });
 
-        userInfoContainer.getChildren().addAll(avatar, userName, spamButton, deleteHistoryButton);
+        userInfoContainer.getChildren().addAll(searchSection, userName, spamButton, deleteHistoryButton);
         return userInfoContainer;
     }
-
-
 
     private VBox createGroupInfo() {
         GroupListView groupAction = new GroupListView(user, null);
         VBox groupInfoContainer = new VBox(10);
         groupInfoContainer.setStyle("-fx-padding: 10; -fx-background-color: #F0F0F0;");
-        ImageView avatar = new ImageView(new Image("/user.png"));
-        avatar.setFitWidth(80);
-        avatar.setFitHeight(80);
+        
+        VBox searchSection = createSearchSection();
 
         Label groupName = new Label(mainGroup.getGroupName());
         groupName.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
@@ -489,10 +463,119 @@ public class MessagePage {
         });
 
         
-        groupInfoContainer.getChildren().addAll(groupName, infoButton, renameButton, addMemberButton, assignAdminButton, removeMemberButton, deleteHistoryButton);
+        groupInfoContainer.getChildren().addAll(searchSection, groupName, infoButton, renameButton, addMemberButton, assignAdminButton, removeMemberButton, deleteHistoryButton);
 
         return groupInfoContainer;
     }
 
+    private VBox createSearchSection() {
+        VBox searchSection = new VBox(10);
+        searchSection.setStyle("-fx-padding: 10; -fx-background-color: #E7ECEF;");
+    
+        TextField searchField = new TextField();
+        searchField.setPromptText("Tìm kiếm tin nhắn...");
+        searchField.setStyle("-fx-font-size: 14px;");
+    
+        VBox searchResults = new VBox(10);
+        searchResults.setVisible(false);
+        searchResults.setManaged(false);
+    
+        List<MessageDTO> allMessages = new ArrayList<>();
+        if (opponent != null) {
+            List<MessageDTO> oldChat = messageBUS.getMessagesBetweenUsers(user.getUserId(), opponent.getUserId());
+            for (MessageDTO chat : oldChat) {
+                if (!deletedMessageBUS.checkDeletedMessage(chat.getMessageId(), user.getUserId())) {
+                    allMessages.add(chat);
+                }
+            }
+        } else if (mainGroup != null) {
+            List<MessageDTO> oldChat = messageBUS.getMessagesInGroup(mainGroup.getGroupId());
+            for (MessageDTO chat : oldChat) {
+                if (!deletedMessageBUS.checkDeletedMessage(chat.getMessageId(), user.getUserId())) {
+                    allMessages.add(chat);
+                }
+            }
+        }
+    
+        PauseTransition pause = new PauseTransition(Duration.millis(300));
+        searchField.textProperty().addListener((_, _, newValue) -> {
+            pause.setOnFinished(_ -> {
+                if (newValue.isEmpty()) {
+                    searchResults.setVisible(false);
+                    searchResults.setManaged(false);
+                    return;
+                }
+    
+                searchResults.setVisible(true);
+                searchResults.setManaged(true);
+                searchResults.getChildren().clear();
+    
+                List<MessageDTO> filteredMessages = allMessages.stream()
+                        .filter(msg -> msg.getContent().toLowerCase().contains(newValue.toLowerCase())).limit(10).toList();
+    
+                for (MessageDTO msg : filteredMessages) {
+                    searchResults.getChildren().add(createSearchResult("Tin nhắn", msg));
+                }
+            });
+            pause.playFromStart();
+        });
+    
+        searchSection.getChildren().addAll(searchField, searchResults);
+        return searchSection;
+    }
+    
+    private HBox createSearchResult(String type, MessageDTO message) {
+        HBox resultItem = new HBox(10);
+        resultItem.setStyle("-fx-padding: 5; -fx-background-color: #F5F5F5; -fx-border-color: #DDD;");
 
+        VBox messageInfo = new VBox(5);
+        Label contentLabel = new Label(message.getContent());
+        contentLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        String formattedTimestamp = message.getTimestamp().format(formatter);
+
+        Label timestampLabel = new Label(formattedTimestamp);
+        timestampLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #666;");
+
+        messageInfo.getChildren().addAll(contentLabel, timestampLabel);
+        resultItem.getChildren().add(messageInfo);
+
+        resultItem.setOnMouseClicked(_ -> {
+            scrollToMessage(message);
+        });
+        return resultItem;
+    }
+    
+    public void scrollToMessage(MessageDTO message) {
+        for (Node node : messageContainer.getChildren()) { 
+            if (node instanceof VBox) { 
+                VBox messageWrapper = (VBox) node;
+    
+                for (Node wrapperChild : messageWrapper.getChildren()) {
+                    if (wrapperChild instanceof HBox) { 
+                        HBox messageBox = (HBox) wrapperChild;
+    
+                        for (Node boxChild : messageBox.getChildren()) {
+                            if (boxChild instanceof Label) {
+                                Label messageLabel = (Label) boxChild;
+    
+                                if (messageLabel.getText().equals(message.getContent())) {
+                                    double targetY = messageWrapper.getBoundsInParent().getMinY();
+                                    double totalHeight = messageContainer.getBoundsInParent().getHeight();
+                                    double scrollValue = targetY / totalHeight; 
+    
+                                    Platform.runLater(() -> messagePane.setVvalue(scrollValue)); 
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    
 }

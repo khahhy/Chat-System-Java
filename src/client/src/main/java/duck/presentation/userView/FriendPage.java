@@ -1,11 +1,14 @@
 package duck.presentation.userView;
 
 import duck.bus.FriendRequestBUS;
+import duck.bus.DeletedMessageBUS;
 import duck.bus.FriendBUS;
 import duck.bus.UserBUS;
 import duck.dto.UserDTO;
 import duck.bus.GroupBUS;
 import duck.dto.GroupDTO;
+import duck.dto.MessageDTO;
+import duck.bus.MessageBUS;
 
 import duck.dto.FriendRequestDTO;
 import javafx.animation.PauseTransition;
@@ -19,11 +22,13 @@ import javafx.scene.layout.*;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.Optional;
 
 public class FriendPage {
     private final UserBUS userBUS;
     private final FriendBUS friendBUS;
     private final GroupBUS groupBUS;
+    private MessageBUS messageBUS;
     private final UserDTO user;
 
     private final FriendRequestBUS friendRequestBUS;
@@ -31,7 +36,9 @@ public class FriendPage {
     private final ObservableList<UserDTO> users_list;
     private final FilteredList<UserDTO> filteredList;
     private final FilteredList<GroupDTO> filteredGroupList;
+    private final FilteredList<MessageDTO> filteredChatList;
     private final ObservableList<GroupDTO> groups_list;
+    private final ObservableList<MessageDTO> chat_list;
     private final BorderPane parent;
     public FriendPage(UserDTO user, BorderPane root) {
         parent = root;
@@ -39,6 +46,7 @@ public class FriendPage {
         this.userBUS = new UserBUS();
         this.friendBUS = new FriendBUS();
         this.groupBUS = new GroupBUS();
+        this.messageBUS = new MessageBUS();
         friendRequestBUS = new FriendRequestBUS();
         this.user = user;
         this.users_list = FXCollections.observableArrayList();
@@ -48,6 +56,9 @@ public class FriendPage {
         List<GroupDTO> groupDTOlist = groupBUS.getAllGroupsByUserId(user.getUserId());
         groups_list = FXCollections.observableArrayList(groupDTOlist);
         this.filteredGroupList = new FilteredList<>(groups_list, _ -> true);
+        List<MessageDTO> messageDTOlist = messageBUS.getAllMessagesByUser(user.getUserId());
+        chat_list = FXCollections.observableArrayList(messageDTOlist);
+        this.filteredChatList = new FilteredList<>(chat_list, _ -> true);
     }    
 
     private void loadUser() {
@@ -130,6 +141,9 @@ public class FriendPage {
                 
                 filteredGroupList.filtered(item -> item.getGroupName().toLowerCase().contains(newValue.toLowerCase())).stream().limit(10).toList()
                     .forEach(group -> searchResults.getChildren().add(createSearchResult("Nhóm", group)));
+
+                filteredChatList.filtered(item -> item.getContent().toLowerCase().contains(newValue.toLowerCase())).stream().limit(10).toList()
+                    .forEach(message -> searchResults.getChildren().add(createSearchResult("Tin nhắn", message)));
             });
         });
 
@@ -192,6 +206,9 @@ public class FriendPage {
             
             MenuButton optionsButton = new MenuButton();
             MenuItem chatOption = new MenuItem("Nhắn tin");
+            chatOption.setOnAction(_ -> {
+                parent.setCenter(new MessagePage(user, friend, null).getContent());
+            });
             if (isFriend) {
                 MenuItem groupOption = new MenuItem("Tạo nhóm");
 
@@ -288,7 +305,41 @@ public class FriendPage {
             options.getChildren().addAll(optionsButton);
         
         }
+        else if ("Tin nhắn".equals(tag) && content instanceof MessageDTO message) {
+            MenuButton optionsButton = new MenuButton();
+            MenuItem viewChat = new MenuItem("Xem tin nhắn");
+            MenuItem removeChat = new MenuItem("Xóa tin nhắn");
+            
+            viewChat.setOnAction(_ -> {
+                MessagePage messagePage;
+                
+                if (message.getGroupId() != null) {
+                    messagePage = new MessagePage(user, null, groupBUS.getGroupById(message.getGroupId()));
+                } else if (message.getReceiverId() != null) {
+                    if (message.getReceiverId() == user.getUserId()) {
+                        messagePage = new MessagePage(user, userBUS.getUserById(message.getSenderId()), null);
+                    } else {
+                        messagePage = new MessagePage(user, userBUS.getUserById(message.getReceiverId()), null);
+                    }
+                } else {
+                    return;
+                }
+            
+                parent.setCenter(messagePage.getContent());
+                Platform.runLater(() -> messagePage.scrollToMessage(message)); 
+            });
+            
+            removeChat.setOnAction(_ -> {
+                DeletedMessageBUS delBus = new DeletedMessageBUS();
+                delBus.addDeletedMessage(message.getMessageId(), user.getUserId());
+                
+            });
+
+            optionsButton.getItems().addAll(viewChat, removeChat);
+            optionsButton.setStyle("-fx-font-size: 12px;");
+            options.getChildren().addAll(optionsButton);
         
+        }
 
         result.setRight(options);
         return result;

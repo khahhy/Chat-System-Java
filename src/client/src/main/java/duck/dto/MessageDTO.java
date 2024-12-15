@@ -48,4 +48,6 @@ public class MessageDTO {
 
     public boolean isEncrypted() { return isEncrypted; }
     public void setEncrypted(boolean encrypted) { isEncrypted = encrypted; }
+
+    public String toString() { return content; }
 }

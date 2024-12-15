@@ -260,4 +260,38 @@ public class MessageDAO {
         return null;
     }
     
+    public List<MessageDTO> getAllMessagesByUser(int userId) throws SQLException {
+        List<MessageDTO> messages = new ArrayList<>();
+        String query = "SELECT DISTINCT m.* " +
+                       "FROM messages m " +
+                       "LEFT JOIN GroupMembers gm ON m.group_id = gm.group_id " +
+                       "LEFT JOIN deletemessages dm ON m.message_id = dm.message_id AND dm.user_id = ? " +
+                       "WHERE (m.sender_id = ? OR m.receiver_id = ? OR gm.user_id = ?) " +
+                       "AND dm.message_id IS NULL " + // Loại bỏ các tin nhắn đã bị xóa bởi userId
+                       "ORDER BY m.timestamp";
+    
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId); // Liên kết với bảng deletemessages
+            stmt.setInt(2, userId); // Tin nhắn do user này gửi
+            stmt.setInt(3, userId); // Tin nhắn mà user này nhận
+            stmt.setInt(4, userId); // Tin nhắn trong các nhóm mà user này tham gia
+            
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                messages.add(new MessageDTO(
+                    rs.getInt("message_id"),
+                    rs.getInt("sender_id"),
+                    rs.getObject("receiver_id", Integer.class),
+                    rs.getObject("group_id", Integer.class),
+                    rs.getString("content"),
+                    rs.getTimestamp("timestamp").toLocalDateTime(),
+                    rs.getBoolean("is_encrypted")
+                ));
+            }
+        }
+        return messages;
+    }
+    
+    
 }

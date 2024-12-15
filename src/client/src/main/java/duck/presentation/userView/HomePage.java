@@ -36,7 +36,7 @@ public class HomePage {
         VBox sidebar = createSidebar(root);
         root.setLeft(sidebar);
 
-        root.setCenter(new MessagePage(user, null, null).getContent());
+        root.setCenter(new FriendPage(user, root).getContent());
 
         return root;
     }
