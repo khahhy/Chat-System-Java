@@ -43,12 +43,12 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>3.0.0</version> <!-- Hoặc phiên bản mới hơn -->
+                    <version>3.0.0</version> 
                     <configuration>
                         <mainClass>duck.ClientApp</mainClass>
                     </configuration>
                 </plugin>
-                <!-- Plugin biên dịch -->
+               
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -58,7 +58,7 @@
                         <target>23</target>
                     </configuration>
                 </plugin>
-                <!-- Plugin đóng gói -->
+              
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>

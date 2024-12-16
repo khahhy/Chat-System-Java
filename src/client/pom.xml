@@ -11,7 +11,7 @@
     <artifactId>client</artifactId>
 
     <dependencies>
-        <!-- Thừa hưởng dependencies từ dependencyManagement -->
+      
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -19,12 +19,12 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.5.4</version> <!-- Hoặc phiên bản mới nhất -->
+            <version>42.5.4</version> 
         </dependency>
         <dependency>
             <groupId>com.sun.mail</groupId>
             <artifactId>javax.mail</artifactId>
-            <version>1.6.2</version> <!-- Hoặc phiên bản mới nhất -->
+            <version>1.6.2</version> 
         </dependency>
         <dependency>
             <groupId>org.mindrot</groupId>
@@ -36,7 +36,7 @@
 
     <build>
         <plugins>
-            <!-- Thừa hưởng plugin từ pluginManagement -->
+          
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -49,7 +49,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>duck.presentation.ClientApp</mainClass>
+                                    <mainClass>duck.presentation.SuperMain</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

@@ -11,7 +11,7 @@
     <artifactId>server</artifactId>
 
     <dependencies>
-        <!-- Thừa hưởng dependencies từ dependencyManagement -->
+    
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -20,7 +20,7 @@
 
     <build>
         <plugins>
-            <!-- Thừa hưởng plugin từ pluginManagement -->
+         
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
