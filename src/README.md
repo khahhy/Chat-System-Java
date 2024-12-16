@@ -1,21 +1,26 @@
 # Chat-System-Java
 
-Thiết kế giao diện:
 
-Vào thư mục src:
+Vào cmd, cd vào thư mục src:
 
-chạy lệnh: .\mvnw.cmd exec:java -pl client
+# client: 
+```bash
+.\mvnw.cmd exec:java -pl client
+```
 
+# server: 
+```bash
 .\mvnw.cmd exec:java -pl server
+```
 
-Với người quản trị:
+người quản trị 1:
 
-Tên đăng nhập: admin1
+    Tên đăng nhập: admin1
 
-Mật khẩu: password123
+    Mật khẩu: 123
 
-Với người dùng:
+người quản trị 2:
 
-Tên đăng nhập: java
+    Tên đăng nhập: admin2
 
-Mật khẩu: 2024
+    Mật khẩu: 123

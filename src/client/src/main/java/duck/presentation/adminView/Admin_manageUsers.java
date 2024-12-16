@@ -66,7 +66,7 @@ public class Admin_manageUsers {
             protected void updateItem(LocalDateTime item, boolean empty) {
                 super.updateItem(item, empty);
                 if (item != null) setText(item.format(formatter)); 
-                else setText("Chưa cập nhật");  
+                else setText("");  
             }
         });
         dobColumn.setStyle("-fx-alignment: CENTER;");
