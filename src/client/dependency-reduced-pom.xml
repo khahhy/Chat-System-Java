@@ -39,6 +39,10 @@
           </arguments>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.2</version>
+      </plugin>
     </plugins>
   </build>
 </project>
