@@ -440,6 +440,47 @@ public class UserDAO {
         return blockedUsers;
     }
     
+
+    public List<UserDTO> getUsersWhoBlockedUser(int userId) throws SQLException {
+        List<UserDTO> blockedUsers = new ArrayList<>();
+        String query = "SELECT u.* FROM users u "
+                     + "JOIN friends f ON u.user_id = f.user_id "
+                     + "WHERE f.friend_id = ? AND f.is_blocked = true";
+    
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+    
+            preparedStatement.setInt(1, userId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    UserDTO user = new UserDTO(
+                        resultSet.getInt("user_id"),
+                        resultSet.getString("username"),
+                        resultSet.getString("full_name"),
+                        resultSet.getString("address"),
+                        // Kiểm tra null trước khi gọi toLocalDateTime
+                        resultSet.getTimestamp("date_of_birth") != null 
+                            ? resultSet.getTimestamp("date_of_birth").toLocalDateTime() 
+                            : null,
+                        resultSet.getString("gender") != null 
+                            ? resultSet.getString("gender").charAt(0) 
+                            : 'U', // 'U' cho "Unknown" nếu null
+                        resultSet.getString("email"),
+                        resultSet.getString("password"),
+                        resultSet.getBoolean("status"),
+                        resultSet.getBoolean("is_online"),
+                        // Kiểm tra null trước khi gọi toLocalDateTime
+                        resultSet.getTimestamp("created_at") != null 
+                            ? resultSet.getTimestamp("created_at").toLocalDateTime() 
+                            : null,
+                        resultSet.getBoolean("is_admin")
+                    );
+                    blockedUsers.add(user);
+                }
+            }
+        }
+        return blockedUsers;
+    }
     
     public boolean checkExistEmail(String inputEmail) {
         String query = "SELECT COUNT(*) FROM Users WHERE email = ?";

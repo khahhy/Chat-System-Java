@@ -195,6 +195,16 @@ public class UserBUS {
             return null;
         }
     }
+
+    public List<UserDTO> getUsersWhoBlockedUser(int userId) {
+        try {
+            return userDAO.getUsersWhoBlockedUser(userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     
     public boolean checkExistEmail(String email) {
         return userDAO.checkExistEmail(email); 

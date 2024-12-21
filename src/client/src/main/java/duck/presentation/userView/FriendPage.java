@@ -21,8 +21,10 @@ import javafx.scene.layout.*;
 
 import javafx.util.Duration;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class FriendPage {
     private final UserBUS userBUS;
@@ -62,18 +64,30 @@ public class FriendPage {
     }    
 
     private void loadUser() {
-        List<UserDTO> allUsers = userBUS.searchUsers("", "", null);
-        List<UserDTO> blockedUsers = userBUS.getBlockedUsersByUserId(user.getUserId()); 
+    // Lấy danh sách tất cả người dùng
+    List<UserDTO> allUsers = userBUS.searchUsers("", "", null);
     
-        for (UserDTO otherUser : allUsers) {
-            if (otherUser.getUserId() != user.getUserId()) { 
-                boolean isBlocked = blockedUsers.stream()
-                        .anyMatch(blocked -> blocked.getUserId() == otherUser.getUserId());
-                if (!isBlocked)
-                    users_list.add(otherUser);
-            }
+    // Lấy danh sách người dùng bị người dùng hiện tại chặn
+    List<UserDTO> blockedUsers = userBUS.getBlockedUsersByUserId(user.getUserId());
+
+    // Lấy danh sách người dùng đã chặn người dùng hiện tại
+    List<UserDTO> blockedByUsers = userBUS.getUsersWhoBlockedUser(user.getUserId());
+
+    // Tạo tập hợp chứa tất cả các ID người dùng bị loại bỏ
+    Set<Integer> excludedUserIds = new HashSet<>();
+    blockedUsers.forEach(blocked -> excludedUserIds.add(blocked.getUserId()));
+    blockedByUsers.forEach(blockedBy -> excludedUserIds.add(blockedBy.getUserId()));
+
+    // Lọc danh sách
+    for (UserDTO otherUser : allUsers) {
+        // Nếu không phải người dùng hiện tại và không nằm trong danh sách bị loại bỏ
+        if (otherUser.getUserId() != user.getUserId()
+                && !excludedUserIds.contains(otherUser.getUserId())) {
+            users_list.add(otherUser);
         }
     }
+}
+
 
     public BorderPane getContent() {
         BorderPane root = new BorderPane();

@@ -9,7 +9,7 @@ import java.util.List;
 public class FriendDAO {
     public List<FriendDTO> getFriendsByUserId(int userId) throws SQLException {
         List<FriendDTO> friendList = new ArrayList<>();
-        String query = "SELECT * FROM friends WHERE user_id = ?";
+        String query = "SELECT * FROM friends WHERE user_id = ? and is_blocked = false";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
