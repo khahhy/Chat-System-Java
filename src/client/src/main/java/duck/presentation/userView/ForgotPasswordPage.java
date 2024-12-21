@@ -38,7 +38,7 @@ public class ForgotPasswordPage extends VBox {
 
                 Alert alert;
                 if (isSent) {
-                    alert = new Alert(Alert.AlertType.INFORMATION, "Mã xác minh đã được gửi đến email của bạn.");
+                    alert = new Alert(Alert.AlertType.INFORMATION, "Mật khẩu mới đã được gửi đến email của bạn.");
                     alert.showAndWait();
 
                     // Sau khi gửi mã thành công, chuyển về trang đăng nhập

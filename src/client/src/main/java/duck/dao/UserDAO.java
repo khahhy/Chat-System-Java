@@ -416,22 +416,30 @@ public class UserDAO {
                         resultSet.getString("username"),
                         resultSet.getString("full_name"),
                         resultSet.getString("address"),
-                        resultSet.getTimestamp("date_of_birth").toLocalDateTime(),
-                        resultSet.getString("gender").charAt(0),
+                        // Kiểm tra null trước khi gọi toLocalDateTime
+                        resultSet.getTimestamp("date_of_birth") != null 
+                            ? resultSet.getTimestamp("date_of_birth").toLocalDateTime() 
+                            : null,
+                        resultSet.getString("gender") != null 
+                            ? resultSet.getString("gender").charAt(0) 
+                            : 'U', // 'U' cho "Unknown" nếu null
                         resultSet.getString("email"),
                         resultSet.getString("password"),
                         resultSet.getBoolean("status"),
                         resultSet.getBoolean("is_online"),
-                        resultSet.getTimestamp("created_at").toLocalDateTime(),
+                        // Kiểm tra null trước khi gọi toLocalDateTime
+                        resultSet.getTimestamp("created_at") != null 
+                            ? resultSet.getTimestamp("created_at").toLocalDateTime() 
+                            : null,
                         resultSet.getBoolean("is_admin")
                     );
                     blockedUsers.add(user);
                 }
             }
-    
-        } 
+        }
         return blockedUsers;
     }
+    
     
     public boolean checkExistEmail(String inputEmail) {
         String query = "SELECT COUNT(*) FROM Users WHERE email = ?";

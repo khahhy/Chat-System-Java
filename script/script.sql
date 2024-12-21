@@ -99,7 +99,7 @@ CREATE TABLE public.deletemessages (
 );
 
 
-INSERT INTO public.users (username, full_name, email, password, is_admin)
+INSERT INTO public.users (username, full_name,gender, email, password, is_admin)
 VALUES 
-('admin1', 'Admin One', 'vhduc22@clc.fitus.edu.vn', '123', TRUE),
-('admin2', 'Admin Two', 'ttctuong22@clc.fitus.edu.vn', '123', TRUE);
+('admin1', 'Admin One', 'U', 'vhduc22@clc.fitus.edu.vn', '123', TRUE),
+('admin2', 'Admin Two','U', 'ttctuong22@clc.fitus.edu.vn', '123', TRUE);
